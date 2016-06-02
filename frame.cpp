@@ -1,0 +1,72 @@
+// Copyright (C) 2016  Frode Roxrud Gill
+// See LICENSE file for license
+
+#ifdef __GNUG__
+  #pragma implementation "frame.h"
+#endif
+
+#include <wx/confbase.h>
+
+#include "frame.h"
+
+#include "app.h"
+
+using namespace PhotoMailer;
+
+// the application icon
+#include "photomailer.xpm"
+
+
+BEGIN_EVENT_TABLE(PhotoMailerFrame, wxFrame)
+	EVT_MENU(wxID_EXIT,	PhotoMailerFrame::OnQuit)
+END_EVENT_TABLE()
+
+IMPLEMENT_CLASS(PhotoMailerFrame, wxFrame)
+
+PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
+: PhotoMailerFrameGenerated(NULL)
+{
+	SetIcon(wxIcon(photomailer_xpm));
+	SetTitle(title);
+
+	wxConfigBase* config = wxConfigBase::Get();
+	if (config)
+	{
+		wxString str;
+		if (config->Read("SMTP Server", &str))
+			GetSmtpServerCtrl()->SetValue(str);
+
+		if (config->Read("SMTP Port", &str))
+			GetSmtpPortCtrl()->SetValue(str);
+
+		if (config->Read("SMTP Username", &str))
+			GetSmtpUsernameCtrl()->SetValue(str);
+
+		GetSmtpPasswordCtrl()->Clear();
+
+		if (config->Read("SMTP Sender", &str))
+			GetSenderCtrl()->SetValue(str);
+
+		if (config->Read("Directory", &str))
+			GetDirectoryPicker()->SetPath(str);
+	}
+}
+
+PhotoMailerFrame::~PhotoMailerFrame()
+{
+	wxConfigBase* config = wxConfigBase::Get();
+	if (config)
+	{
+		config->Write("SMTP Server", GetSmtpServerCtrl()->GetValue());
+		config->Write("SMTP Port", GetSmtpPortCtrl()->GetValue());
+		config->Write("SMTP Username", GetSmtpUsernameCtrl()->GetValue());
+		config->Write("SMTP Sender", GetSenderCtrl()->GetValue());
+		config->Write("Directory", GetDirectoryPicker()->GetPath());
+		config->Flush();
+	}
+}
+
+void PhotoMailerFrame::OnQuit(wxCommandEvent& WXUNUSED(event))
+{
+	Close(true);
+}
