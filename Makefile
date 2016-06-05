@@ -15,7 +15,7 @@ DEPS = $(OBJECTS:.o=.dep)
 WX_CONFIG := wx-config
 CXX = $(shell $(WX_CONFIG) --cxx)
 CXXFLAGS = $(shell $(WX_CONFIG) --cxxflags) -W -Wall -Werror -pipe
-LIBSFLAGS = $(shell $(WX_CONFIG) --libs std)
+LIBSFLAGS = $(shell $(WX_CONFIG) --libs std) -lmimetic
 ifdef DEBUG_INFO
  CPPFLAGS += -g
 else
