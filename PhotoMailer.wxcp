@@ -1320,7 +1320,7 @@
 									"m_properties":	[{
 											"type":	"winid",
 											"m_label":	"ID:",
-											"m_winid":	"wxID_ANY"
+											"m_winid":	"ID_DIRECTORY"
 										}, {
 											"type":	"string",
 											"m_label":	"Size:",

@@ -31,7 +31,8 @@ class PhotoMailerFrameGenerated : public wxFrame
 {
 public:
     enum {
-        ID_LISTEN = 10001,
+        ID_DIRECTORY = 10001,
+        ID_LISTEN = 10002,
     };
 protected:
     wxStaticText* m_smtpServerText;

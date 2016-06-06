@@ -21,7 +21,7 @@ IMPLEMENT_CLASS(PhotoMailerApp, wxApp)
 
 PhotoMailerApp::PhotoMailerApp()
 : wxApp(),
-  m_main_frame(NULL)
+  m_main_frame(nullptr)
 {
 }
 

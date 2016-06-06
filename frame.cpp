@@ -20,12 +20,14 @@ using namespace PhotoMailer;
 BEGIN_EVENT_TABLE(PhotoMailerFrame, wxFrame)
 	EVT_MENU(wxID_EXIT,	PhotoMailerFrame::OnQuit)
   EVT_BUTTON(ID_LISTEN, PhotoMailerFrame::OnListen)
+	EVT_FSWATCHER(ID_DIRECTORY, PhotoMailerFrame::OnDirectoryEvent)
 END_EVENT_TABLE()
 
 IMPLEMENT_CLASS(PhotoMailerFrame, wxFrame)
 
 PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
-: PhotoMailerFrameGenerated(NULL)
+: PhotoMailerFrameGenerated(nullptr),
+  m_filesystem_watcher(nullptr)
 {
 	SetIcon(wxIcon(photomailer_xpm));
 	SetTitle(title);
@@ -58,6 +60,8 @@ PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 
 PhotoMailerFrame::~PhotoMailerFrame()
 {
+	delete m_filesystem_watcher;
+
 	wxConfigBase* config = wxConfigBase::Get();
 	if (config)
 	{
@@ -78,4 +82,30 @@ void PhotoMailerFrame::OnQuit(wxCommandEvent& WXUNUSED(event))
 
 void PhotoMailerFrame::OnListen(wxCommandEvent& WXUNUSED(event))
 {
+	if (m_filesystem_watcher)
+	{
+		delete m_filesystem_watcher;
+		m_filesystem_watcher = nullptr;
+		GetDirectoryListenButton()->SetLabel(_("Listen"));
+	}
+	else
+	{
+		if (!IsValidSettings())
+		{
+			return;
+		}
+		m_filesystem_watcher = new wxFileSystemWatcher();
+		m_filesystem_watcher->SetOwner(this);
+		m_filesystem_watcher->Add(GetDirectoryPicker()->GetDirName(), wxFSW_EVENT_CREATE|wxFSW_EVENT_DELETE|wxFSW_EVENT_RENAME);
+		GetDirectoryListenButton()->SetLabel(_("Stop"));
+	}
+}
+
+void PhotoMailerFrame::OnDirectoryEvent(wxFileSystemWatcherEvent& WXUNUSED(event))
+{
+}
+
+bool PhotoMailerFrame::IsValidSettings() const
+{
+	return true;
 }

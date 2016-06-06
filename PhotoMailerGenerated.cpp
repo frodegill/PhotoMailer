@@ -112,7 +112,7 @@ PhotoMailerFrameGenerated::PhotoMailerFrameGenerated(wxWindow* parent, wxWindowI
     
     directorySizer->Add(m_directoryText, 0, wxALL, 5);
     
-    m_directoryPicker = new wxDirPickerCtrl(this, wxID_ANY, wxEmptyString, _("Select a folder"), wxDefaultPosition, wxSize(-1,-1), wxDIRP_SMALL|wxDIRP_DEFAULT_STYLE);
+    m_directoryPicker = new wxDirPickerCtrl(this, ID_DIRECTORY, wxEmptyString, _("Select a folder"), wxDefaultPosition, wxSize(-1,-1), wxDIRP_SMALL|wxDIRP_DEFAULT_STYLE);
     
     directorySizer->Add(m_directoryPicker, 1, wxALL, 5);
     

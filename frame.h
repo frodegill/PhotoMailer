@@ -8,6 +8,8 @@
   #pragma interface "frame.h"
 #endif
 
+#include <wx/fswatcher.h>
+
 #include "PhotoMailerGenerated.h"
 
 
@@ -23,6 +25,13 @@ public:
 
 	void OnQuit(wxCommandEvent& event);
 	void OnListen(wxCommandEvent& event);
+	void OnDirectoryEvent(wxFileSystemWatcherEvent& event);
+
+private:
+	bool IsValidSettings() const;
+
+private:
+	wxFileSystemWatcher* m_filesystem_watcher;
 
 private:
 	DECLARE_EVENT_TABLE()
