@@ -29,9 +29,12 @@ public:
 
 private:
 	bool IsValidSettings() const;
+	void RefreshPhotoList();
+	bool AddPhoto();
 
 private:
 	wxFileSystemWatcher* m_filesystem_watcher;
+	wxMutex m_photolist_mutex;
 
 private:
 	DECLARE_EVENT_TABLE()

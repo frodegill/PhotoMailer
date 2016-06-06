@@ -97,15 +97,37 @@ void PhotoMailerFrame::OnListen(wxCommandEvent& WXUNUSED(event))
 		m_filesystem_watcher = new wxFileSystemWatcher();
 		m_filesystem_watcher->SetOwner(this);
 		m_filesystem_watcher->Add(GetDirectoryPicker()->GetDirName(), wxFSW_EVENT_CREATE|wxFSW_EVENT_DELETE|wxFSW_EVENT_RENAME);
+		RefreshPhotoList();
 		GetDirectoryListenButton()->SetLabel(_("Stop"));
 	}
 }
 
 void PhotoMailerFrame::OnDirectoryEvent(wxFileSystemWatcherEvent& WXUNUSED(event))
 {
+	//TODO
 }
 
 bool PhotoMailerFrame::IsValidSettings() const
 {
-	return true;
+	//TODO
+	return false;
+}
+
+void PhotoMailerFrame::RefreshPhotoList()
+{
+	wxGrid* grid = GetPhotosGrid();
+	grid->BeginBatch();
+
+	grid->DeleteRows(0, grid->GetNumberRows());
+
+	grid->EndBatch();
+	//TODO
+}
+
+bool PhotoMailerFrame::AddPhoto()
+{
+	wxMutexLocker lock(m_photolist_mutex);
+
+	//TODO
+	return false;
 }
