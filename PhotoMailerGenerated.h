@@ -29,6 +29,10 @@
 
 class PhotoMailerFrameGenerated : public wxFrame
 {
+public:
+    enum {
+        ID_LISTEN = 10001,
+    };
 protected:
     wxStaticText* m_smtpServerText;
     wxTextCtrl* m_smtpServerCtrl;
@@ -40,6 +44,8 @@ protected:
     wxTextCtrl* m_smtpPasswordCtrl;
     wxStaticText* m_senderText;
     wxTextCtrl* m_senderCtrl;
+    wxStaticText* m_subjectText;
+    wxTextCtrl* m_subjectCtrl;
     wxStaticText* m_directoryText;
     wxDirPickerCtrl* m_directoryPicker;
     wxButton* m_directoryListenButton;
@@ -58,6 +64,8 @@ public:
     wxTextCtrl* GetSmtpPasswordCtrl() { return m_smtpPasswordCtrl; }
     wxStaticText* GetSenderText() { return m_senderText; }
     wxTextCtrl* GetSenderCtrl() { return m_senderCtrl; }
+    wxStaticText* GetSubjectText() { return m_subjectText; }
+    wxTextCtrl* GetSubjectCtrl() { return m_subjectCtrl; }
     wxStaticText* GetDirectoryText() { return m_directoryText; }
     wxDirPickerCtrl* GetDirectoryPicker() { return m_directoryPicker; }
     wxButton* GetDirectoryListenButton() { return m_directoryListenButton; }

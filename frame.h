@@ -22,6 +22,7 @@ public:
 	virtual ~PhotoMailerFrame();
 
 	void OnQuit(wxCommandEvent& event);
+	void OnListen(wxCommandEvent& event);
 
 private:
 	DECLARE_EVENT_TABLE()

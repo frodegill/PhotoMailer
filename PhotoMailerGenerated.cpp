@@ -93,6 +93,17 @@ PhotoMailerFrameGenerated::PhotoMailerFrameGenerated(wxWindow* parent, wxWindowI
     
     flexGridSizer38->Add(m_senderCtrl, 0, wxALL|wxEXPAND, 5);
     
+    m_subjectText = new wxStaticText(this, wxID_ANY, _("Subject"), wxDefaultPosition, wxSize(-1,-1), 0);
+    
+    flexGridSizer38->Add(m_subjectText, 0, wxALL, 5);
+    
+    m_subjectCtrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxSize(-1,-1), 0);
+    #if wxVERSION_NUMBER >= 3000
+    m_subjectCtrl->SetHint(wxT(""));
+    #endif
+    
+    flexGridSizer38->Add(m_subjectCtrl, 1, wxALL|wxEXPAND, 5);
+    
     wxBoxSizer* directorySizer = new wxBoxSizer(wxHORIZONTAL);
     
     mainBoxSizer->Add(directorySizer, 0, wxALL|wxEXPAND, 5);
@@ -105,7 +116,7 @@ PhotoMailerFrameGenerated::PhotoMailerFrameGenerated(wxWindow* parent, wxWindowI
     
     directorySizer->Add(m_directoryPicker, 1, wxALL, 5);
     
-    m_directoryListenButton = new wxButton(this, wxID_ANY, _("Listen"), wxDefaultPosition, wxSize(-1,-1), 0);
+    m_directoryListenButton = new wxButton(this, ID_LISTEN, _("Listen"), wxDefaultPosition, wxSize(-1,-1), 0);
     
     directorySizer->Add(m_directoryListenButton, 0, wxALL, 5);
     

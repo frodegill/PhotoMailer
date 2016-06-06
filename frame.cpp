@@ -19,6 +19,7 @@ using namespace PhotoMailer;
 
 BEGIN_EVENT_TABLE(PhotoMailerFrame, wxFrame)
 	EVT_MENU(wxID_EXIT,	PhotoMailerFrame::OnQuit)
+  EVT_BUTTON(ID_LISTEN, PhotoMailerFrame::OnListen)
 END_EVENT_TABLE()
 
 IMPLEMENT_CLASS(PhotoMailerFrame, wxFrame)
@@ -47,6 +48,9 @@ PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 		if (config->Read("SMTP Sender", &str))
 			GetSenderCtrl()->SetValue(str);
 
+		if (config->Read("SMTP Subject", &str))
+			GetSubjectCtrl()->SetValue(str);
+
 		if (config->Read("Directory", &str))
 			GetDirectoryPicker()->SetPath(str);
 	}
@@ -61,6 +65,7 @@ PhotoMailerFrame::~PhotoMailerFrame()
 		config->Write("SMTP Port", GetSmtpPortCtrl()->GetValue());
 		config->Write("SMTP Username", GetSmtpUsernameCtrl()->GetValue());
 		config->Write("SMTP Sender", GetSenderCtrl()->GetValue());
+		config->Write("SMTP Subject", GetSubjectCtrl()->GetValue());
 		config->Write("Directory", GetDirectoryPicker()->GetPath());
 		config->Flush();
 	}
@@ -69,4 +74,8 @@ PhotoMailerFrame::~PhotoMailerFrame()
 void PhotoMailerFrame::OnQuit(wxCommandEvent& WXUNUSED(event))
 {
 	Close(true);
+}
+
+void PhotoMailerFrame::OnListen(wxCommandEvent& WXUNUSED(event))
+{
 }
