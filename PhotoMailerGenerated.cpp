@@ -30,79 +30,79 @@ PhotoMailerFrameGenerated::PhotoMailerFrameGenerated(wxWindow* parent, wxWindowI
     
     mainBoxSizer->Add(smtpStaticBoxSizer, 0, wxALL|wxEXPAND, 5);
     
-    wxFlexGridSizer* flexGridSizer38 = new wxFlexGridSizer(3, 4, 0, 0);
-    flexGridSizer38->SetFlexibleDirection( wxBOTH );
-    flexGridSizer38->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
-    flexGridSizer38->AddGrowableCol(1);
-    flexGridSizer38->AddGrowableCol(3);
+    wxFlexGridSizer* smtpFlexGridSizer = new wxFlexGridSizer(3, 4, 0, 0);
+    smtpFlexGridSizer->SetFlexibleDirection( wxBOTH );
+    smtpFlexGridSizer->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
+    smtpFlexGridSizer->AddGrowableCol(1);
+    smtpFlexGridSizer->AddGrowableCol(3);
     
-    smtpStaticBoxSizer->Add(flexGridSizer38, 1, wxALL|wxEXPAND, 0);
+    smtpStaticBoxSizer->Add(smtpFlexGridSizer, 1, wxALL|wxEXPAND, 0);
     
     m_smtpServerText = new wxStaticText(this, wxID_ANY, _("Server"), wxDefaultPosition, wxSize(-1,-1), 0);
     
-    flexGridSizer38->Add(m_smtpServerText, 0, wxALL|wxALIGN_RIGHT, 5);
+    smtpFlexGridSizer->Add(m_smtpServerText, 0, wxALL|wxALIGN_RIGHT, 5);
     
     m_smtpServerCtrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxSize(-1,-1), 0);
     #if wxVERSION_NUMBER >= 3000
     m_smtpServerCtrl->SetHint(wxT(""));
     #endif
     
-    flexGridSizer38->Add(m_smtpServerCtrl, 1, wxALL|wxEXPAND, 5);
+    smtpFlexGridSizer->Add(m_smtpServerCtrl, 1, wxALL|wxEXPAND, 5);
     
     m_smtpPortText = new wxStaticText(this, wxID_ANY, _("Port"), wxDefaultPosition, wxSize(-1,-1), 0);
     
-    flexGridSizer38->Add(m_smtpPortText, 0, wxALL|wxALIGN_RIGHT, 5);
+    smtpFlexGridSizer->Add(m_smtpPortText, 0, wxALL|wxALIGN_RIGHT, 5);
     
     m_smtpPortCtrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxSize(-1,-1), 0);
     #if wxVERSION_NUMBER >= 3000
     m_smtpPortCtrl->SetHint(wxT(""));
     #endif
     
-    flexGridSizer38->Add(m_smtpPortCtrl, 1, wxALL|wxEXPAND, 5);
+    smtpFlexGridSizer->Add(m_smtpPortCtrl, 1, wxALL|wxEXPAND, 5);
     
     m_smtpUsernameText = new wxStaticText(this, wxID_ANY, _("Username"), wxDefaultPosition, wxSize(-1,-1), 0);
     
-    flexGridSizer38->Add(m_smtpUsernameText, 0, wxALL|wxALIGN_RIGHT, 5);
+    smtpFlexGridSizer->Add(m_smtpUsernameText, 0, wxALL|wxALIGN_RIGHT, 5);
     
     m_smtpUsernameCtrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxSize(-1,-1), 0);
     #if wxVERSION_NUMBER >= 3000
     m_smtpUsernameCtrl->SetHint(wxT(""));
     #endif
     
-    flexGridSizer38->Add(m_smtpUsernameCtrl, 1, wxALL|wxEXPAND, 5);
+    smtpFlexGridSizer->Add(m_smtpUsernameCtrl, 1, wxALL|wxEXPAND, 5);
     
     m_smtpPasswordText = new wxStaticText(this, wxID_ANY, _("Password"), wxDefaultPosition, wxSize(-1,-1), 0);
     
-    flexGridSizer38->Add(m_smtpPasswordText, 0, wxALL|wxALIGN_RIGHT, 5);
+    smtpFlexGridSizer->Add(m_smtpPasswordText, 0, wxALL|wxALIGN_RIGHT, 5);
     
     m_smtpPasswordCtrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxSize(-1,-1), wxTE_PASSWORD);
     #if wxVERSION_NUMBER >= 3000
     m_smtpPasswordCtrl->SetHint(wxT(""));
     #endif
     
-    flexGridSizer38->Add(m_smtpPasswordCtrl, 1, wxALL|wxEXPAND, 5);
+    smtpFlexGridSizer->Add(m_smtpPasswordCtrl, 1, wxALL|wxEXPAND, 5);
     
     m_senderText = new wxStaticText(this, wxID_ANY, _("Sender email"), wxDefaultPosition, wxSize(-1,-1), 0);
     
-    flexGridSizer38->Add(m_senderText, 0, wxALL|wxALIGN_RIGHT, 5);
+    smtpFlexGridSizer->Add(m_senderText, 0, wxALL|wxALIGN_RIGHT, 5);
     
     m_senderCtrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxSize(-1,-1), 0);
     #if wxVERSION_NUMBER >= 3000
     m_senderCtrl->SetHint(wxT(""));
     #endif
     
-    flexGridSizer38->Add(m_senderCtrl, 0, wxALL|wxEXPAND, 5);
+    smtpFlexGridSizer->Add(m_senderCtrl, 0, wxALL|wxEXPAND, 5);
     
     m_subjectText = new wxStaticText(this, wxID_ANY, _("Subject"), wxDefaultPosition, wxSize(-1,-1), 0);
     
-    flexGridSizer38->Add(m_subjectText, 0, wxALL, 5);
+    smtpFlexGridSizer->Add(m_subjectText, 0, wxALL, 5);
     
     m_subjectCtrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxSize(-1,-1), 0);
     #if wxVERSION_NUMBER >= 3000
     m_subjectCtrl->SetHint(wxT(""));
     #endif
     
-    flexGridSizer38->Add(m_subjectCtrl, 1, wxALL|wxEXPAND, 5);
+    smtpFlexGridSizer->Add(m_subjectCtrl, 1, wxALL|wxEXPAND, 5);
     
     wxBoxSizer* directorySizer = new wxBoxSizer(wxHORIZONTAL);
     

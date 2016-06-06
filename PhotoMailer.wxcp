@@ -202,7 +202,7 @@
 										}, {
 											"type":	"string",
 											"m_label":	"Name:",
-											"m_value":	"flexGridSizer38"
+											"m_value":	"smtpFlexGridSizer"
 										}, {
 											"type":	"string",
 											"m_label":	"Style:",
