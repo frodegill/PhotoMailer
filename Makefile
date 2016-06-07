@@ -17,9 +17,9 @@ CXX = $(shell $(WX_CONFIG) --cxx)
 CXXFLAGS = $(shell $(WX_CONFIG) --cxxflags) -W -Wall -Werror -pipe -std=c++11
 LIBSFLAGS = $(shell $(WX_CONFIG) --libs std) -lmimetic
 ifdef DEBUG_INFO
- CPPFLAGS += -g
+ CXXFLAGS += -g
 else
- CPPFLAGS += -O
+ CXXFLAGS += -O
 endif
 
 %.o: %.cpp
