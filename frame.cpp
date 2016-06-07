@@ -56,6 +56,8 @@ PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 		if (config->Read("Directory", &str))
 			GetDirectoryPicker()->SetPath(str);
 	}
+
+	InitPhotoList();
 }
 
 PhotoMailerFrame::~PhotoMailerFrame()
@@ -73,6 +75,12 @@ PhotoMailerFrame::~PhotoMailerFrame()
 		config->Write("Directory", GetDirectoryPicker()->GetPath());
 		config->Flush();
 	}
+}
+
+wxDirTraverseResult PhotoMailerFrame::OnFile(const wxString& filename)
+{
+	AddPhoto(filename);
+	return wxDIR_CONTINUE;
 }
 
 void PhotoMailerFrame::OnQuit(wxCommandEvent& WXUNUSED(event))
@@ -110,24 +118,74 @@ void PhotoMailerFrame::OnDirectoryEvent(wxFileSystemWatcherEvent& WXUNUSED(event
 bool PhotoMailerFrame::IsValidSettings() const
 {
 	//TODO
-	return false;
+	return true;
+}
+
+bool PhotoMailerFrame::IsJpeg(const wxString& filename) const
+{
+	wxFile file(filename);
+	if (!file.IsOpened())
+		return false;
+
+	static const ssize_t JPEG_HEADER_LENGTH = 11;
+	wxUint8 jpegHeader[JPEG_HEADER_LENGTH];
+	ssize_t read = file.Read(&jpegHeader[0], JPEG_HEADER_LENGTH);
+	return (JPEG_HEADER_LENGTH==read &&
+	        0xFF==jpegHeader[0] &&
+	        0xD8==jpegHeader[1] &&
+	        0xFF==jpegHeader[2] &&
+	        (0xE0==jpegHeader[3] || 0xE1==jpegHeader[3]));
+}
+
+void PhotoMailerFrame::InitPhotoList()
+{
+	wxGrid* grid = GetPhotosGrid();
+	int number_of_cols = grid->GetNumberCols();
+	if (5 >= number_of_cols)
+	{
+    grid->SetRowLabelSize(0);
+		grid->AppendCols(5-number_of_cols);
+		grid->SetColLabelValue(0, _("Photo"));
+		grid->SetColLabelValue(1, _("Filename"));
+		grid->SetColLabelValue(2, _("Time"));
+		grid->SetColLabelValue(3, _("Email"));
+		grid->SetColLabelValue(4, _("Action"));
+	}
 }
 
 void PhotoMailerFrame::RefreshPhotoList()
 {
-	wxGrid* grid = GetPhotosGrid();
-	grid->BeginBatch();
-
-	grid->DeleteRows(0, grid->GetNumberRows());
-
-	grid->EndBatch();
-	//TODO
-}
-
-bool PhotoMailerFrame::AddPhoto()
-{
 	wxMutexLocker lock(m_photolist_mutex);
 
-	//TODO
-	return false;
+	wxGrid* grid = GetPhotosGrid();
+
+	grid->BeginBatch();
+
+	int number_of_rows = grid->GetNumberRows();
+	if (0 < number_of_rows)
+	{
+		grid->DeleteRows(0, number_of_rows);
+	}
+
+	wxDir listen_dir(GetDirectoryPicker()->GetPath());
+	if (listen_dir.IsOpened())
+	{
+		listen_dir.Traverse(*this);
+	}
+	
+	grid->EndBatch();
+}
+
+bool PhotoMailerFrame::AddPhoto(const wxString& filename)
+{
+	if (!IsJpeg(filename))
+		return false;
+
+	wxMutexLocker lock(m_photolist_mutex);
+
+	wxGrid* grid = GetPhotosGrid();
+	grid->AppendRows(1);
+	grid->SetCellValue(grid->GetNumberRows()-1, 1, filename);
+
+	return true;
 }

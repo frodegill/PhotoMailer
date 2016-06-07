@@ -8,6 +8,7 @@
   #pragma interface "frame.h"
 #endif
 
+#include <wx/dir.h>
 #include <wx/fswatcher.h>
 
 #include "PhotoMailerGenerated.h"
@@ -16,21 +17,28 @@
 namespace PhotoMailer
 {
 
-class PhotoMailerFrame : public PhotoMailerFrameGenerated
+class PhotoMailerFrame : public PhotoMailerFrameGenerated, public wxDirTraverser
 {
 DECLARE_DYNAMIC_CLASS(PhotoMailerFrame)
 public:
 	PhotoMailerFrame(const wxString& title);
 	virtual ~PhotoMailerFrame();
 
+//wxDirTraverser
+	virtual wxDirTraverseResult OnFile(const wxString& filename);
+	virtual wxDirTraverseResult OnDir(const wxString& WXUNUSED(dirname)) {return wxDIR_CONTINUE;}
+		
 	void OnQuit(wxCommandEvent& event);
 	void OnListen(wxCommandEvent& event);
 	void OnDirectoryEvent(wxFileSystemWatcherEvent& event);
 
 private:
 	bool IsValidSettings() const;
+	bool IsJpeg(const wxString& filename) const;
+
+	void InitPhotoList();
 	void RefreshPhotoList();
-	bool AddPhoto();
+	bool AddPhoto(const wxString& filename);
 
 private:
 	wxFileSystemWatcher* m_filesystem_watcher;
