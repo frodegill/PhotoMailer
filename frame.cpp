@@ -175,6 +175,9 @@ void PhotoMailerFrame::InitPhotoList()
 		wxGridCellAttr* ro_attr = new wxGridCellAttr;
 		ro_attr->SetReadOnly();
 
+		wxGridCellAttr* editor_attr = new wxGridCellAttr;
+		editor_attr->SetEditor(new wxGridCellTextEditor);
+
 		grid->SetColLabelValue(0, _("Photo"));
 		grid->SetColAttr(0, ro_attr);
 		grid->SetColLabelValue(1, _("Filename"));
@@ -182,6 +185,7 @@ void PhotoMailerFrame::InitPhotoList()
 		grid->SetColLabelValue(2, _("Time"));
 		ro_attr->IncRef(); grid->SetColAttr(2, ro_attr);
 		grid->SetColLabelValue(3, _("Email"));
+		grid->SetColAttr(3, editor_attr);
 		grid->SetColLabelValue(4, _("Action"));
 	}
 }
