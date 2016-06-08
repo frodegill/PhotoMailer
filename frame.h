@@ -35,6 +35,7 @@ public:
 private:
 	bool IsValidSettings() const;
 	bool IsJpeg(const wxString& filename) const;
+	bool GetRelativeFilename(const wxString& absolute, wxString& relative);
 
 	void InitPhotoList();
 	void RefreshPhotoList();

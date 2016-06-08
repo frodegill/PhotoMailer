@@ -137,13 +137,38 @@ bool PhotoMailerFrame::IsJpeg(const wxString& filename) const
 	        (0xE0==jpegHeader[3] || 0xE1==jpegHeader[3]));
 }
 
+bool PhotoMailerFrame::GetRelativeFilename(const wxString& absolute, wxString& relative)
+{
+	wxString listen_dir = GetDirectoryPicker()->GetPath();
+	size_t listen_dir_length = listen_dir.Len();
+	if (listen_dir_length >= absolute.Len())
+		return false;
+
+	wxString rest;
+	if (!absolute.StartsWith(listen_dir, &rest))
+		return false;
+
+	if (rest.StartsWith(_("./")))
+	{
+		relative = rest;
+	}
+	else if (rest.StartsWith(_("/")))
+	{
+		relative = _(".") + rest;
+	}
+	else {
+		relative = _("./") + rest;
+	}
+	return true;
+}
+
 void PhotoMailerFrame::InitPhotoList()
 {
 	wxGrid* grid = GetPhotosGrid();
 	int number_of_cols = grid->GetNumberCols();
 	if (5 >= number_of_cols)
 	{
-    grid->SetRowLabelSize(0);
+    grid->HideRowLabels();
 		grid->AppendCols(5-number_of_cols);
 		grid->SetColLabelValue(0, _("Photo"));
 		grid->SetColLabelValue(1, _("Filename"));
@@ -185,7 +210,13 @@ bool PhotoMailerFrame::AddPhoto(const wxString& filename)
 
 	wxGrid* grid = GetPhotosGrid();
 	grid->AppendRows(1);
-	grid->SetCellValue(grid->GetNumberRows()-1, 1, filename);
+	
+	wxString cell_filename;
+	if (!GetRelativeFilename(filename, cell_filename))
+	{
+		cell_filename = filename;
+	}
+	grid->SetCellValue(grid->GetNumberRows()-1, 1, cell_filename);
 
 	return true;
 }
