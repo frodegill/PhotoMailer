@@ -44,6 +44,8 @@ private:
 private:
 	wxFileSystemWatcher* m_filesystem_watcher;
 	wxMutex m_photolist_mutex;
+	
+	bool m_is_batch_updating;
 
 private:
 	DECLARE_EVENT_TABLE()

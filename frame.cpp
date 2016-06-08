@@ -27,7 +27,8 @@ IMPLEMENT_CLASS(PhotoMailerFrame, wxFrame)
 
 PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 : PhotoMailerFrameGenerated(nullptr),
-  m_filesystem_watcher(nullptr)
+  m_filesystem_watcher(nullptr),
+  m_is_batch_updating(false)
 {
 	SetIcon(wxIcon(photomailer_xpm));
 	SetTitle(title);
@@ -170,9 +171,16 @@ void PhotoMailerFrame::InitPhotoList()
 	{
     grid->HideRowLabels();
 		grid->AppendCols(5-number_of_cols);
+
+		wxGridCellAttr* ro_attr = new wxGridCellAttr;
+		ro_attr->SetReadOnly();
+
 		grid->SetColLabelValue(0, _("Photo"));
+		grid->SetColAttr(0, ro_attr);
 		grid->SetColLabelValue(1, _("Filename"));
+		ro_attr->IncRef(); grid->SetColAttr(1, ro_attr);
 		grid->SetColLabelValue(2, _("Time"));
+		ro_attr->IncRef(); grid->SetColAttr(2, ro_attr);
 		grid->SetColLabelValue(3, _("Email"));
 		grid->SetColLabelValue(4, _("Action"));
 	}
@@ -185,6 +193,7 @@ void PhotoMailerFrame::RefreshPhotoList()
 	wxGrid* grid = GetPhotosGrid();
 
 	grid->BeginBatch();
+	m_is_batch_updating = true;
 
 	int number_of_rows = grid->GetNumberRows();
 	if (0 < number_of_rows)
@@ -198,7 +207,11 @@ void PhotoMailerFrame::RefreshPhotoList()
 		listen_dir.Traverse(*this);
 	}
 	
+	grid->AutoSizeColumn(1);
+	grid->AutoSizeColumn(2);
+
 	grid->EndBatch();
+	m_is_batch_updating = false;
 }
 
 bool PhotoMailerFrame::AddPhoto(const wxString& filename)
@@ -210,13 +223,27 @@ bool PhotoMailerFrame::AddPhoto(const wxString& filename)
 
 	wxGrid* grid = GetPhotosGrid();
 	grid->AppendRows(1);
+	int current_row = grid->GetNumberRows()-1;
 	
+	//Filename
 	wxString cell_filename;
 	if (!GetRelativeFilename(filename, cell_filename))
 	{
 		cell_filename = filename;
 	}
-	grid->SetCellValue(grid->GetNumberRows()-1, 1, cell_filename);
+	grid->SetCellValue(current_row, 1, cell_filename);
+
+	//File last modified time
+	wxStructStat stat;
+	wxStat(filename, &stat);
+	wxDateTime last_modified(stat.st_mtime);
+	grid->SetCellValue(current_row, 2, last_modified.FormatISOCombined(' '));
+
+	if (!m_is_batch_updating)
+	{
+		grid->AutoSizeColumn(1);
+		grid->AutoSizeColumn(2);
+	}
 
 	return true;
 }
