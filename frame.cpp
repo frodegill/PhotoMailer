@@ -20,7 +20,8 @@ using namespace PhotoMailer;
 BEGIN_EVENT_TABLE(PhotoMailerFrame, wxFrame)
 	EVT_MENU(wxID_EXIT,	PhotoMailerFrame::OnQuit)
   EVT_BUTTON(ID_LISTEN, PhotoMailerFrame::OnListen)
-	EVT_FSWATCHER(ID_DIRECTORY, PhotoMailerFrame::OnDirectoryEvent)
+	EVT_FSWATCHER(wxID_ANY, PhotoMailerFrame::OnDirectoryEvent)
+	EVT_GRID_SELECT_CELL(PhotoMailerFrame::OnGridSelectCell)
 END_EVENT_TABLE()
 
 IMPLEMENT_CLASS(PhotoMailerFrame, wxFrame)
@@ -28,7 +29,8 @@ IMPLEMENT_CLASS(PhotoMailerFrame, wxFrame)
 PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 : PhotoMailerFrameGenerated(nullptr),
   m_filesystem_watcher(nullptr),
-  m_is_batch_updating(false)
+  m_is_batch_updating(false),
+  m_selected_row(-1)
 {
 	SetIcon(wxIcon(photomailer_xpm));
 	SetTitle(title);
@@ -105,15 +107,58 @@ void PhotoMailerFrame::OnListen(wxCommandEvent& WXUNUSED(event))
 		}
 		m_filesystem_watcher = new wxFileSystemWatcher();
 		m_filesystem_watcher->SetOwner(this);
-		m_filesystem_watcher->Add(GetDirectoryPicker()->GetDirName(), wxFSW_EVENT_CREATE|wxFSW_EVENT_DELETE|wxFSW_EVENT_RENAME);
+		m_filesystem_watcher->AddTree(GetDirectoryPicker()->GetDirName(), wxFSW_EVENT_CREATE|wxFSW_EVENT_DELETE|wxFSW_EVENT_RENAME);
 		RefreshPhotoList();
 		GetDirectoryListenButton()->SetLabel(_("Stop"));
 	}
 }
 
-void PhotoMailerFrame::OnDirectoryEvent(wxFileSystemWatcherEvent& WXUNUSED(event))
+void PhotoMailerFrame::OnDirectoryEvent(wxFileSystemWatcherEvent& event)
 {
-	//TODO
+	int type = event.GetChangeType();
+	if (0!=(type&wxFSW_EVENT_DELETE) || 0!=(type&wxFSW_EVENT_RENAME))
+	{
+		wxString relative_filename;
+		if (GetRelativeFilename(event.GetPath().GetFullPath(), relative_filename))
+		{
+			wxGrid* grid = GetPhotosGrid();
+			int i = grid->GetNumberRows();
+			while (--i>=0)
+			{
+				if (0 == relative_filename.Cmp(grid->GetCellValue(i, 1)))
+				{
+					grid->DeleteRows(i, 1, false);
+					break;
+				}
+			}
+		}
+	}
+	if (0!=(type&wxFSW_EVENT_CREATE) || 0!=(type&wxFSW_EVENT_RENAME))
+	{
+		AddPhoto((0!=(type&wxFSW_EVENT_RENAME) ? event.GetNewPath() : event.GetPath()).GetFullPath());
+	}
+}
+
+void PhotoMailerFrame::OnGridSelectCell(wxGridEvent& event)
+{
+	int event_row = event.GetRow();
+	if (m_selected_row == event_row)
+		return;
+
+	wxGrid* grid = GetPhotosGrid();
+	m_selected_row = event_row;
+	wxString filename;
+	if (0>m_selected_row || (event_row+1)>=grid->GetNumberRows())
+	{
+		filename = wxEmptyString;
+		return;
+	}
+	else
+	{
+		filename = GetDirectoryPicker()->GetPath() + grid->GetCellValue(m_selected_row, 1);
+	}
+
+	wxGetApp().GetPreviewFrame()->ShowPhoto(filename);
 }
 
 bool PhotoMailerFrame::IsValidSettings() const
@@ -247,6 +292,7 @@ bool PhotoMailerFrame::AddPhoto(const wxString& filename)
 	{
 		grid->AutoSizeColumn(1);
 		grid->AutoSizeColumn(2);
+		grid->SelectRow(current_row);
 	}
 
 	return true;

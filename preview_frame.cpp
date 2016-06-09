@@ -13,6 +13,8 @@ using namespace PhotoMailer;
 
 
 BEGIN_EVENT_TABLE(PreviewFrame, wxMiniFrame)
+	EVT_CLOSE(PreviewFrame::OnClose)
+	EVT_SIZE(PreviewFrame::OnSize)
 END_EVENT_TABLE()
 
 IMPLEMENT_CLASS(PreviewFrame, wxMiniFrame)
@@ -25,4 +27,22 @@ PreviewFrame::PreviewFrame(wxWindow* parent, wxWindowID id, const wxString& titl
 
 PreviewFrame::~PreviewFrame()
 {
+}
+
+void PreviewFrame::OnClose(wxCloseEvent& WXUNUSED(event))
+{
+	wxGetApp().OnPreviewFrameClosed();
+	Destroy();
+}
+
+void PreviewFrame::OnSize(wxSizeEvent& event)
+{
+	Refresh();
+	event.Skip(true);
+}
+
+void PreviewFrame::ShowPhoto(const wxString& filename)
+{
+	m_selected_photo_filename = filename;
+	Refresh();
 }

@@ -23,7 +23,14 @@ public:
 	             long style = wxCAPTION | wxRESIZE_BORDER);
 	virtual ~PreviewFrame();
 
+	void OnClose(wxCloseEvent& event);
+	void OnSize(wxSizeEvent& event);
+
+public:
+	void ShowPhoto(const wxString& filename);
+
 private:
+	wxString m_selected_photo_filename;
 
 private:
 	DECLARE_EVENT_TABLE()

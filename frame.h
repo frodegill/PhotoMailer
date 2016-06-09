@@ -31,6 +31,7 @@ public:
 	void OnQuit(wxCommandEvent& event);
 	void OnListen(wxCommandEvent& event);
 	void OnDirectoryEvent(wxFileSystemWatcherEvent& event);
+	void OnGridSelectCell(wxGridEvent& event);
 
 private:
 	bool IsValidSettings() const;
@@ -46,6 +47,7 @@ private:
 	wxMutex m_photolist_mutex;
 	
 	bool m_is_batch_updating;
+	int  m_selected_row;
 
 private:
 	DECLARE_EVENT_TABLE()
