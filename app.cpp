@@ -21,7 +21,8 @@ IMPLEMENT_CLASS(PhotoMailerApp, wxApp)
 
 PhotoMailerApp::PhotoMailerApp()
 : wxApp(),
-  m_main_frame(nullptr)
+  m_main_frame(nullptr),
+  m_preview_frame(nullptr)
 {
 }
 
@@ -64,4 +65,16 @@ bool PhotoMailerApp::OnInit()
 	m_main_frame->Show(true);
 
 	return true;
+}
+
+PreviewFrame* PhotoMailerApp::GetPreviewFrame()
+{
+	if (!m_preview_frame)
+	{
+		m_preview_frame = new PreviewFrame(GetMainFrame(), wxID_ANY, _("Preview"),
+		                                   wxDefaultPosition, wxDefaultSize,
+		                                   wxCAPTION | wxMAXIMIZE_BOX | wxCLOSE_BOX | wxRESIZE_BORDER);
+	}
+
+	return m_preview_frame;
 }

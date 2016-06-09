@@ -9,7 +9,9 @@
 #endif
 
 #include <wx/app.h>
+
 #include "frame.h"
+#include "preview_frame.h"
 
 
 namespace PhotoMailer
@@ -24,11 +26,15 @@ public:
 
   virtual bool OnInit() wxOVERRIDE;
 
+	void OnPreviewFrameClosed() {m_preview_frame = nullptr;}
+
 public:
 	PhotoMailerFrame* GetMainFrame() const {return m_main_frame;}
+	PreviewFrame* GetPreviewFrame();
 
 private:
 	PhotoMailerFrame* m_main_frame;
+	PreviewFrame*     m_preview_frame;
 };
 
 }
