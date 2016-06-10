@@ -32,10 +32,11 @@ public:
 
 private:
 	bool LoadPhoto(const wxSize& size);
+	bool  GetOrientation(unsigned char& orientation) const;
 
 private:
 	wxString  m_selected_photo_filename;
-	wxImage*  m_selected_photo_image;
+	wxImage   m_selected_photo_image;
 	wxBitmap* m_selected_photo_bitmap;
 
 private:
