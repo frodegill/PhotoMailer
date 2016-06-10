@@ -155,7 +155,7 @@ void PhotoMailerFrame::OnGridSelectCell(wxGridEvent& event)
 	}
 	else
 	{
-		filename = GetDirectoryPicker()->GetPath() + grid->GetCellValue(m_selected_row, 1);
+		filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_selected_row, 1);
 	}
 
 	wxGetApp().GetPreviewFrame()->ShowPhoto(filename);
