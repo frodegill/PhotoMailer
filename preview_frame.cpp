@@ -23,6 +23,14 @@ PreviewFrame::PreviewFrame(wxWindow* parent, wxWindowID id, const wxString& titl
                            const wxPoint& pos, const wxSize& size, long style)
 : wxMiniFrame(parent, id, title, pos, size, style)
 {
+	SetSize(-1,-1);
+#if wxVERSION_NUMBER >= 2900
+	if(!wxPersistenceManager::Get().Find(this)) {
+		wxPersistenceManager::Get().RegisterAndRestore(this);
+	} else {
+		wxPersistenceManager::Get().Restore(this);
+	}
+#endif
 }
 
 PreviewFrame::~PreviewFrame()
