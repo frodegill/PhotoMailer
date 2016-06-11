@@ -6,7 +6,6 @@
 #endif
 
 #include <wx/dcclient.h>
-#include <libexif/exif-data.h>
 
 #include "preview_frame.h"
 
@@ -62,7 +61,7 @@ void PreviewFrame::OnPaint(wxPaintEvent& WXUNUSED(event))
 	wxSize dc_size = dc.GetSize();
 	if (!m_selected_photo_bitmap)
 	{
-		if (!LoadPhoto(dc_size))
+		if (!ScalePhoto(dc_size))
 			return;
 	}
 	dc.DrawBitmap(*m_selected_photo_bitmap,
@@ -72,39 +71,21 @@ void PreviewFrame::OnPaint(wxPaintEvent& WXUNUSED(event))
 
 void PreviewFrame::ShowPhoto(const wxString& filename)
 {
-	m_selected_photo_filename = filename;
+	SetTitle(filename);
 	delete m_selected_photo_bitmap; m_selected_photo_bitmap = nullptr;
 	Refresh();
 }
 
-bool PreviewFrame::LoadPhoto(const wxSize& size)
+bool PreviewFrame::ScalePhoto(const wxSize& size)
 {
-	if (!m_selected_photo_image.IsOk())
-	{
-		if (!m_selected_photo_image.LoadFile(m_selected_photo_filename, wxBITMAP_TYPE_JPEG) ||
-		    !m_selected_photo_image.IsOk())
-		{
-			m_selected_photo_image.Destroy();
-			return false;
-		}
-
-		unsigned char orientation;
-		if (GetOrientation(orientation))
-		{
-			switch(orientation)
-			{
-				case 3: m_selected_photo_image = m_selected_photo_image.Rotate180(); break;
-				case 6: m_selected_photo_image = m_selected_photo_image.Rotate90(true); break;
-				case 8: m_selected_photo_image = m_selected_photo_image.Rotate90(false); break;
-				default: break;
-			};
-		};
-	}
+	const wxImage* image = wxGetApp().GetMainFrame()->GetSelectedPhoto();
+	if (!image || !image->IsOk())
+		return false;
 
 	int dc_width = size.GetWidth();
 	int dc_height = size.GetHeight();
-	int image_width = m_selected_photo_image.GetWidth();
-	int image_height = m_selected_photo_image.GetHeight();
+	int image_width = image->GetWidth();
+	int image_height = image->GetHeight();
 	if (0==dc_width || 0==dc_height || 0==image_width || 0==image_height)
 		return false;
 
@@ -123,25 +104,12 @@ bool PreviewFrame::LoadPhoto(const wxSize& size)
 
 	if (!m_selected_photo_bitmap)
 	{
-		m_selected_photo_bitmap = new wxBitmap(m_selected_photo_image.Scale(image_width, image_height, wxIMAGE_QUALITY_HIGH));
+		m_selected_photo_bitmap = new wxBitmap(image->Scale(image_width, image_height, wxIMAGE_QUALITY_NORMAL));
 		if (!m_selected_photo_bitmap->IsOk())
 		{
 			delete m_selected_photo_bitmap; m_selected_photo_bitmap = nullptr;
 			return false;
 		}
 	}
-	return true;
-}
-
-bool PreviewFrame::GetOrientation(unsigned char& orientation) const
-{
-	ExifData* ed = exif_data_new_from_file(m_selected_photo_filename.c_str());
-	if (!ed)
-		return false;
-
-	ExifEntry* entry = exif_content_get_entry(ed->ifd[EXIF_IFD_0], EXIF_TAG_ORIENTATION);
-	orientation = entry ? entry->data[0] : 0;
-
-	exif_data_unref(ed);
 	return true;
 }

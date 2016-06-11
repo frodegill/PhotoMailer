@@ -42,12 +42,20 @@ private:
 	void RefreshPhotoList();
 	bool AddPhoto(const wxString& filename);
 
+	bool LoadSelectedPhoto();
+	bool GetOrientation(unsigned char& orientation) const;
+
+public:
+	const wxImage* GetSelectedPhoto();
+
 private:
 	wxFileSystemWatcher* m_filesystem_watcher;
 	wxMutex m_photolist_mutex;
 	
-	bool m_is_batch_updating;
-	int  m_selected_row;
+	bool     m_is_batch_updating;
+	int      m_selected_row;
+	wxString m_selected_photo_filename;
+	wxImage  m_selected_photo_image;
 
 private:
 	DECLARE_EVENT_TABLE()

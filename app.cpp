@@ -71,7 +71,7 @@ PreviewFrame* PhotoMailerApp::GetPreviewFrame()
 {
 	if (!m_preview_frame)
 	{
-		m_preview_frame = new PreviewFrame(GetMainFrame(), wxID_ANY, _("Preview"),
+		m_preview_frame = new PreviewFrame(nullptr, wxID_ANY, _("Preview"),
 		                                   wxDefaultPosition, wxDefaultSize,
 		                                   wxCAPTION | wxMAXIMIZE_BOX | wxCLOSE_BOX | wxRESIZE_BORDER);
 		m_preview_frame->Show(true);

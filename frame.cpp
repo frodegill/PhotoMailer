@@ -6,6 +6,7 @@
 #endif
 
 #include <wx/confbase.h>
+#include <libexif/exif-data.h>
 
 #include "frame.h"
 
@@ -147,18 +148,16 @@ void PhotoMailerFrame::OnGridSelectCell(wxGridEvent& event)
 
 	wxGrid* grid = GetPhotosGrid();
 	m_selected_row = event_row;
-	wxString filename;
 	if (0>m_selected_row || (event_row+1)>=grid->GetNumberRows())
 	{
-		filename = wxEmptyString;
-		return;
+		m_selected_photo_filename = wxEmptyString;
 	}
 	else
 	{
-		filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_selected_row, 1);
+		m_selected_photo_filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_selected_row, 1);
 	}
-
-	wxGetApp().GetPreviewFrame()->ShowPhoto(filename);
+	m_selected_photo_image.Destroy();
+	wxGetApp().GetPreviewFrame()->ShowPhoto(m_selected_photo_filename);
 }
 
 bool PhotoMailerFrame::IsValidSettings() const
@@ -296,4 +295,55 @@ bool PhotoMailerFrame::AddPhoto(const wxString& filename)
 	}
 
 	return true;
+}
+
+bool PhotoMailerFrame::LoadSelectedPhoto()
+{
+	if (m_selected_photo_filename.IsEmpty())
+		return false;
+
+	if (!m_selected_photo_image.IsOk())
+	{
+		if (!m_selected_photo_image.LoadFile(	m_selected_photo_filename, wxBITMAP_TYPE_JPEG) ||
+		    !m_selected_photo_image.IsOk())
+		{
+			m_selected_photo_image.Destroy();
+			return false;
+		}
+
+		unsigned char orientation;
+		if (GetOrientation(orientation))
+		{
+			switch(orientation)
+			{
+				case 3: m_selected_photo_image = m_selected_photo_image.Rotate180(); break;
+				case 6: m_selected_photo_image = m_selected_photo_image.Rotate90(true); break;
+				case 8: m_selected_photo_image = m_selected_photo_image.Rotate90(false); break;
+				default: break;
+			};
+		};
+	}
+	return true;
+}
+
+bool PhotoMailerFrame::GetOrientation(unsigned char& orientation) const
+{
+	ExifData* ed = exif_data_new_from_file(m_selected_photo_filename.c_str());
+	if (!ed)
+		return false;
+
+	ExifEntry* entry = exif_content_get_entry(ed->ifd[EXIF_IFD_0], EXIF_TAG_ORIENTATION);
+	orientation = entry ? entry->data[0] : 0;
+
+	exif_data_unref(ed);
+	return true;
+}
+
+const wxImage* PhotoMailerFrame::GetSelectedPhoto()
+{
+	if (!m_selected_photo_image.IsOk())
+	{
+		LoadSelectedPhoto();
+	}
+	return &m_selected_photo_image;
 }
