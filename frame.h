@@ -43,7 +43,7 @@ private:
 	bool AddPhoto(const wxString& filename);
 
 	bool LoadSelectedPhoto();
-	bool GetOrientation(unsigned char& orientation) const;
+	bool GetExifInfo(unsigned char& orientation, wxDateTime& timestamp) const;
 
 public:
 	const wxImage* GetSelectedPhoto();

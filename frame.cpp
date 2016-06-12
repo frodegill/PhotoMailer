@@ -312,7 +312,8 @@ bool PhotoMailerFrame::LoadSelectedPhoto()
 		}
 
 		unsigned char orientation;
-		if (GetOrientation(orientation))
+		wxDateTime timestamp;
+		if (GetExifInfo(orientation, timestamp))
 		{
 			switch(orientation)
 			{
@@ -326,7 +327,7 @@ bool PhotoMailerFrame::LoadSelectedPhoto()
 	return true;
 }
 
-bool PhotoMailerFrame::GetOrientation(unsigned char& orientation) const
+bool PhotoMailerFrame::GetExifInfo(unsigned char& orientation, wxDateTime& timestamp) const
 {
 	ExifData* ed = exif_data_new_from_file(m_selected_photo_filename.c_str());
 	if (!ed)
@@ -334,6 +335,16 @@ bool PhotoMailerFrame::GetOrientation(unsigned char& orientation) const
 
 	ExifEntry* entry = exif_content_get_entry(ed->ifd[EXIF_IFD_0], EXIF_TAG_ORIENTATION);
 	orientation = entry ? entry->data[0] : 0;
+
+	entry = exif_content_get_entry(ed->ifd[EXIF_IFD_0], EXIF_TAG_DATE_TIME);
+	if (entry)
+	{
+		wxString::const_iterator end;
+		if (!timestamp.ParseFormat(wxString::FromUTF8(reinterpret_cast<const char*>(entry->data)), _("%Y:%m:%d %H:%M:%S"), &end))
+		{
+			timestamp.SetToCurrent();
+		}
+	}
 
 	exif_data_unref(ed);
 	return true;
