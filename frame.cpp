@@ -154,11 +154,14 @@ void PhotoMailerFrame::OnDirectoryEvent(wxFileSystemWatcherEvent& event)
 
 void PhotoMailerFrame::OnGridSelectCell(wxGridEvent& event)
 {
+	wxGrid* grid = GetPhotosGrid();
+	if (0 >= grid->GetNumberRows()) //The initial grid->AppendCols will end up calling this (it selects cell(0,0)
+		return;
+
 	int event_row = event.GetRow();
 	if (m_selected_row == event_row)
 		return;
 
-	wxGrid* grid = GetPhotosGrid();
 	m_selected_row = event_row;
 	if (0>m_selected_row || (event_row+1)>=grid->GetNumberRows())
 	{
