@@ -28,6 +28,7 @@ public:
 	virtual wxDirTraverseResult OnFile(const wxString& filename);
 	virtual wxDirTraverseResult OnDir(const wxString& WXUNUSED(dirname)) {return wxDIR_CONTINUE;}
 		
+	void OnClose(wxCloseEvent& event);
 	void OnQuit(wxCommandEvent& event);
 	void OnListen(wxCommandEvent& event);
 	void OnDirectoryEvent(wxFileSystemWatcherEvent& event);

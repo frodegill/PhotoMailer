@@ -19,6 +19,7 @@ using namespace PhotoMailer;
 
 
 BEGIN_EVENT_TABLE(PhotoMailerFrame, wxFrame)
+	EVT_CLOSE(PhotoMailerFrame::OnClose)
 	EVT_MENU(wxID_EXIT,	PhotoMailerFrame::OnQuit)
   EVT_BUTTON(ID_LISTEN, PhotoMailerFrame::OnListen)
 	EVT_FSWATCHER(wxID_ANY, PhotoMailerFrame::OnDirectoryEvent)
@@ -85,6 +86,17 @@ wxDirTraverseResult PhotoMailerFrame::OnFile(const wxString& filename)
 {
 	AddPhoto(filename);
 	return wxDIR_CONTINUE;
+}
+
+void PhotoMailerFrame::OnClose(wxCloseEvent& WXUNUSED(event))
+{
+	PreviewFrame* preview_frame = wxGetApp().GetPreviewFrame();
+	if (preview_frame)
+	{
+		preview_frame->Destroy();
+	}
+
+	Destroy();
 }
 
 void PhotoMailerFrame::OnQuit(wxCommandEvent& WXUNUSED(event))
