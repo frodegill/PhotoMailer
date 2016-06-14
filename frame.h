@@ -28,6 +28,7 @@ public:
 	virtual wxDirTraverseResult OnFile(const wxString& filename);
 	virtual wxDirTraverseResult OnDir(const wxString& WXUNUSED(dirname)) {return wxDIR_CONTINUE;}
 		
+	void OnIdle(wxIdleEvent& event);
 	void OnClose(wxCloseEvent& event);
 	void OnQuit(wxCommandEvent& event);
 	void OnListen(wxCommandEvent& event);
@@ -41,10 +42,11 @@ private:
 
 	void InitPhotoList();
 	void RefreshPhotoList();
-	bool AddPhoto(const wxString& filename);
+	bool AddGridItem(const wxString& filename);
+	bool ProcessGridRow();
 
-	bool LoadSelectedPhoto();
-	bool GetExifInfo(unsigned char& orientation, wxDateTime& timestamp) const;
+	static bool LoadImage(const wxString& filename, wxImage& image, wxDateTime* timestamp = nullptr);
+	static bool GetExifInfo(const wxString& filename, unsigned char* orientation, wxDateTime* timestamp);
 
 public:
 	const wxImage* GetSelectedPhoto();
@@ -54,8 +56,8 @@ private:
 	wxMutex m_photolist_mutex;
 	
 	bool     m_is_batch_updating;
+	int      m_processed_grid_row;
 	int      m_selected_row;
-	wxString m_selected_photo_filename;
 	wxImage  m_selected_photo_image;
 
 private:

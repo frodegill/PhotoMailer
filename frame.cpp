@@ -19,6 +19,7 @@ using namespace PhotoMailer;
 
 
 BEGIN_EVENT_TABLE(PhotoMailerFrame, wxFrame)
+	EVT_IDLE(PhotoMailerFrame::OnIdle)
 	EVT_CLOSE(PhotoMailerFrame::OnClose)
 	EVT_MENU(wxID_EXIT,	PhotoMailerFrame::OnQuit)
   EVT_BUTTON(ID_LISTEN, PhotoMailerFrame::OnListen)
@@ -32,6 +33,7 @@ PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 : PhotoMailerFrameGenerated(nullptr),
   m_filesystem_watcher(nullptr),
   m_is_batch_updating(false),
+  m_processed_grid_row(-1),
   m_selected_row(-1)
 {
 	SetIcon(wxIcon(photomailer_xpm));
@@ -84,8 +86,15 @@ PhotoMailerFrame::~PhotoMailerFrame()
 
 wxDirTraverseResult PhotoMailerFrame::OnFile(const wxString& filename)
 {
-	AddPhoto(filename);
+	AddGridItem(filename);
 	return wxDIR_CONTINUE;
+}
+
+void PhotoMailerFrame::OnIdle(wxIdleEvent& WXUNUSED(event))
+{
+	wxGrid* grid = GetPhotosGrid();
+	if ((m_processed_grid_row+1) < grid->GetNumberRows())
+		ProcessGridRow();
 }
 
 void PhotoMailerFrame::OnClose(wxCloseEvent& WXUNUSED(event))
@@ -148,7 +157,7 @@ void PhotoMailerFrame::OnDirectoryEvent(wxFileSystemWatcherEvent& event)
 	}
 	if (0!=(type&wxFSW_EVENT_CREATE) || 0!=(type&wxFSW_EVENT_RENAME))
 	{
-		AddPhoto((0!=(type&wxFSW_EVENT_RENAME) ? event.GetNewPath() : event.GetPath()).GetFullPath());
+		AddGridItem((0!=(type&wxFSW_EVENT_RENAME) ? event.GetNewPath() : event.GetPath()).GetFullPath());
 	}
 }
 
@@ -163,16 +172,13 @@ void PhotoMailerFrame::OnGridSelectCell(wxGridEvent& event)
 		return;
 
 	m_selected_row = event_row;
-	if (0>m_selected_row || (event_row+1)>=grid->GetNumberRows())
-	{
-		m_selected_photo_filename = wxEmptyString;
-	}
-	else
-	{
-		m_selected_photo_filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_selected_row, 1);
-	}
 	m_selected_photo_image.Destroy();
-	wxGetApp().GetPreviewFrame()->ShowPhoto(m_selected_photo_filename);
+
+	if (0<=m_selected_row && event_row<grid->GetNumberRows())
+	{
+		wxString filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_selected_row, 1);
+		wxGetApp().GetPreviewFrame()->ShowPhoto(filename);
+	}
 }
 
 bool PhotoMailerFrame::IsValidSettings() const
@@ -251,9 +257,9 @@ void PhotoMailerFrame::InitPhotoList()
 
 void PhotoMailerFrame::RefreshPhotoList()
 {
-	wxMutexLocker lock(m_photolist_mutex);
-
 	wxGrid* grid = GetPhotosGrid();
+
+	wxMutexLocker lock(m_photolist_mutex);
 
 	grid->BeginBatch();
 	m_is_batch_updating = true;
@@ -277,18 +283,18 @@ void PhotoMailerFrame::RefreshPhotoList()
 	m_is_batch_updating = false;
 }
 
-bool PhotoMailerFrame::AddPhoto(const wxString& filename)
+bool PhotoMailerFrame::AddGridItem(const wxString& filename)
 {
 	if (!IsJpeg(filename))
 		return false;
 
+	wxGrid* grid = GetPhotosGrid();
+
 	wxMutexLocker lock(m_photolist_mutex);
 
-	wxGrid* grid = GetPhotosGrid();
 	grid->AppendRows(1);
 	int current_row = grid->GetNumberRows()-1;
-	
-	//Filename
+
 	wxString cell_filename;
 	if (!GetRelativeFilename(filename, cell_filename))
 	{
@@ -296,68 +302,92 @@ bool PhotoMailerFrame::AddPhoto(const wxString& filename)
 	}
 	grid->SetCellValue(current_row, 1, cell_filename);
 
-	//File last modified time
-	wxStructStat stat;
-	wxStat(filename, &stat);
-	wxDateTime last_modified(stat.st_mtime);
-	grid->SetCellValue(current_row, 2, last_modified.FormatISOCombined(' '));
+	return true;
+}
+
+bool PhotoMailerFrame::ProcessGridRow()
+{
+	wxGrid* grid = GetPhotosGrid();
+
+	wxMutexLocker lock(m_photolist_mutex);
+
+	if ((m_processed_grid_row+1) >= grid->GetNumberRows())
+		return true;
+
+	m_processed_grid_row++;
+
+	wxString filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_processed_grid_row, 1);
+
+	if (!IsJpeg(filename))
+		return false;
+
+	wxImage image;
+	wxDateTime exif_timestamp;
+	if (LoadImage(filename, image, &exif_timestamp))
+	{
+		//File last modified time
+		grid->SetCellValue(m_processed_grid_row, 2, exif_timestamp.FormatISOCombined(' '));
+	}
 
 	if (!m_is_batch_updating)
 	{
 		grid->AutoSizeColumn(1);
 		grid->AutoSizeColumn(2);
-		grid->SelectRow(current_row);
 	}
 
 	return true;
 }
 
-bool PhotoMailerFrame::LoadSelectedPhoto()
+bool PhotoMailerFrame::LoadImage(const wxString& filename, wxImage& image, wxDateTime* timestamp)
 {
-	if (m_selected_photo_filename.IsEmpty())
+	if (filename.IsEmpty())
 		return false;
 
-	if (!m_selected_photo_image.IsOk())
+	if (!image.LoadFile(filename, wxBITMAP_TYPE_JPEG) || !image.IsOk())
 	{
-		if (!m_selected_photo_image.LoadFile(	m_selected_photo_filename, wxBITMAP_TYPE_JPEG) ||
-		    !m_selected_photo_image.IsOk())
-		{
-			m_selected_photo_image.Destroy();
-			return false;
-		}
+		image.Destroy();
+		return false;
+	}
 
-		unsigned char orientation;
-		wxDateTime timestamp;
-		if (GetExifInfo(orientation, timestamp))
+	unsigned char orientation;
+	if (GetExifInfo(filename, &orientation, timestamp))
+	{
+		switch(orientation)
 		{
-			switch(orientation)
-			{
-				case 3: m_selected_photo_image = m_selected_photo_image.Rotate180(); break;
-				case 6: m_selected_photo_image = m_selected_photo_image.Rotate90(true); break;
-				case 8: m_selected_photo_image = m_selected_photo_image.Rotate90(false); break;
-				default: break;
-			};
+			case 3: image = image.Rotate180(); break;
+			case 6: image = image.Rotate90(true); break;
+			case 8: image = image.Rotate90(false); break;
+			default: break;
 		};
 	}
 	return true;
 }
 
-bool PhotoMailerFrame::GetExifInfo(unsigned char& orientation, wxDateTime& timestamp) const
+bool PhotoMailerFrame::GetExifInfo(const wxString& filename, unsigned char* orientation, wxDateTime* timestamp)
 {
-	ExifData* ed = exif_data_new_from_file(m_selected_photo_filename.c_str());
+	if (!orientation && !timestamp) //Noop
+		return true;
+
+	ExifData* ed = exif_data_new_from_file(filename.c_str());
 	if (!ed)
 		return false;
 
-	ExifEntry* entry = exif_content_get_entry(ed->ifd[EXIF_IFD_0], EXIF_TAG_ORIENTATION);
-	orientation = entry ? entry->data[0] : 0;
-
-	entry = exif_content_get_entry(ed->ifd[EXIF_IFD_0], EXIF_TAG_DATE_TIME);
-	if (entry)
+	if (orientation)
 	{
-		wxString::const_iterator end;
-		if (!timestamp.ParseFormat(wxString::FromUTF8(reinterpret_cast<const char*>(entry->data)), _("%Y:%m:%d %H:%M:%S"), &end))
+		ExifEntry* entry = exif_content_get_entry(ed->ifd[EXIF_IFD_0], EXIF_TAG_ORIENTATION);
+		*orientation = entry ? entry->data[0] : 0;
+	}
+
+	if (timestamp)
+	{
+		ExifEntry* entry = exif_content_get_entry(ed->ifd[EXIF_IFD_0], EXIF_TAG_DATE_TIME);
+		if (entry)
 		{
-			timestamp.SetToCurrent();
+			wxString::const_iterator end;
+			if (!timestamp->ParseFormat(wxString::FromUTF8(reinterpret_cast<const char*>(entry->data)), _("%Y:%m:%d %H:%M:%S"), &end))
+			{
+				timestamp->SetToCurrent();
+			}
 		}
 	}
 
@@ -369,7 +399,12 @@ const wxImage* PhotoMailerFrame::GetSelectedPhoto()
 {
 	if (!m_selected_photo_image.IsOk())
 	{
-		LoadSelectedPhoto();
+		wxGrid* grid = GetPhotosGrid();
+
+		wxMutexLocker lock(m_photolist_mutex);
+
+		wxString filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_selected_row, 1);
+		LoadImage(filename, m_selected_photo_image);
 	}
 	return &m_selected_photo_image;
 }
