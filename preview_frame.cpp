@@ -13,6 +13,9 @@
 
 using namespace PhotoMailer;
 
+// the preview window icon
+#include "photomailer_preview.xpm"
+
 
 BEGIN_EVENT_TABLE(PreviewFrame, wxMiniFrame)
 	EVT_CLOSE(PreviewFrame::OnClose)
@@ -27,6 +30,7 @@ PreviewFrame::PreviewFrame(wxWindow* parent, wxWindowID id, const wxString& titl
 : wxMiniFrame(parent, id, title, pos, size, style),
   m_selected_photo_bitmap(nullptr)
 {
+	SetIcon(wxIcon(photomailer_preview_xpm));
 	SetSize(-1,-1);
 #if wxVERSION_NUMBER >= 2900
 	if(!wxPersistenceManager::Get().Find(this)) {
