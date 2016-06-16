@@ -19,7 +19,7 @@ namespace PhotoMailer
 
 class PhotoMailerFrame : public PhotoMailerFrameGenerated, public wxDirTraverser
 {
-DECLARE_DYNAMIC_CLASS(PhotoMailerFrame)
+wxDECLARE_DYNAMIC_CLASS(PhotoMailerFrame);
 public:
 	PhotoMailerFrame(const wxString& title);
 	virtual ~PhotoMailerFrame();

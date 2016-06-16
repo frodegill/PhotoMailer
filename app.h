@@ -19,7 +19,7 @@ namespace PhotoMailer
 
 class PhotoMailerApp : public wxApp
 {
-DECLARE_DYNAMIC_CLASS(PhotoMailer);
+wxDECLARE_DYNAMIC_CLASS(PhotoMailer);
 public:
 	PhotoMailerApp();
 	virtual ~PhotoMailerApp();

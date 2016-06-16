@@ -12,7 +12,7 @@
 
 #include "app.h"
 
-IMPLEMENT_APP(PhotoMailer::PhotoMailerApp);
+wxIMPLEMENT_APP(PhotoMailer::PhotoMailerApp);
 
 
 using namespace PhotoMailer;

@@ -11,6 +11,7 @@
 #include "frame.h"
 
 #include "app.h"
+#include "thumbnail.h"
 
 using namespace PhotoMailer;
 
@@ -27,7 +28,7 @@ BEGIN_EVENT_TABLE(PhotoMailerFrame, wxFrame)
 	EVT_GRID_SELECT_CELL(PhotoMailerFrame::OnGridSelectCell)
 END_EVENT_TABLE()
 
-IMPLEMENT_CLASS(PhotoMailerFrame, wxFrame)
+wxIMPLEMENT_CLASS(PhotoMailerFrame, wxFrame);
 
 PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 : PhotoMailerFrameGenerated(nullptr),
@@ -93,7 +94,7 @@ wxDirTraverseResult PhotoMailerFrame::OnFile(const wxString& filename)
 void PhotoMailerFrame::OnIdle(wxIdleEvent& WXUNUSED(event))
 {
 	wxGrid* grid = GetPhotosGrid();
-	if ((m_processed_grid_row+1) < grid->GetNumberRows())
+	if (m_filesystem_watcher && (m_processed_grid_row+1) < grid->GetNumberRows())
 		ProcessGridRow();
 }
 
@@ -235,7 +236,14 @@ void PhotoMailerFrame::InitPhotoList()
 	if (5 >= number_of_cols)
 	{
     grid->HideRowLabels();
+		grid->DisableDragRowSize();
 		grid->AppendCols(5-number_of_cols);
+		grid->SetDefaultCellAlignment(wxALIGN_CENTRE, wxALIGN_CENTRE);
+
+		wxGridCellAttr* photo_attr = new wxGridCellAttr;
+		photo_attr->SetReadOnly();
+		ThumbnailRenderer* thumbnail_renderer = new ThumbnailRenderer;
+		photo_attr->SetRenderer(thumbnail_renderer);
 
 		wxGridCellAttr* ro_attr = new wxGridCellAttr;
 		ro_attr->SetReadOnly();
@@ -243,10 +251,12 @@ void PhotoMailerFrame::InitPhotoList()
 		wxGridCellAttr* editor_attr = new wxGridCellAttr;
 		editor_attr->SetEditor(new wxGridCellTextEditor);
 
+		grid->SetDefaultRowSize(thumbnail_renderer->GetBestHeight());
 		grid->SetColLabelValue(0, _("Photo"));
-		grid->SetColAttr(0, ro_attr);
+		grid->SetColAttr(0, photo_attr);
+		grid->SetColSize(0, thumbnail_renderer->GetBestWidth());
 		grid->SetColLabelValue(1, _("Filename"));
-		ro_attr->IncRef(); grid->SetColAttr(1, ro_attr);
+		grid->SetColAttr(1, ro_attr);
 		grid->SetColLabelValue(2, _("Time"));
 		ro_attr->IncRef(); grid->SetColAttr(2, ro_attr);
 		grid->SetColLabelValue(3, _("Email"));
@@ -325,7 +335,21 @@ bool PhotoMailerFrame::ProcessGridRow()
 	wxDateTime exif_timestamp;
 	if (LoadImage(filename, image, &exif_timestamp))
 	{
-		//File last modified time
+		wxGridCellAttr* thumbnail_attr = new wxGridCellAttr;
+		if (thumbnail_attr)
+		{
+			ThumbnailClientData* thumbnail_clientdata = new ThumbnailClientData;
+			if (!thumbnail_clientdata || !thumbnail_clientdata->SetThumbnail(image))
+			{
+				delete thumbnail_clientdata;
+			}
+			else
+			{
+				thumbnail_attr->SetClientObject(thumbnail_clientdata);
+				grid->SetAttr(m_processed_grid_row, 0, thumbnail_attr);
+			}
+		}
+
 		grid->SetCellValue(m_processed_grid_row, 2, exif_timestamp.FormatISOCombined(' '));
 	}
 

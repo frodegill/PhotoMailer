@@ -23,7 +23,7 @@ BEGIN_EVENT_TABLE(PreviewFrame, wxMiniFrame)
 	EVT_PAINT(PreviewFrame::OnPaint)
 END_EVENT_TABLE()
 
-IMPLEMENT_CLASS(PreviewFrame, wxMiniFrame)
+wxIMPLEMENT_CLASS(PreviewFrame, wxMiniFrame);
 
 PreviewFrame::PreviewFrame(wxWindow* parent, wxWindowID id, const wxString& title,
                            const wxPoint& pos, const wxSize& size, long style)

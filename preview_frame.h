@@ -16,7 +16,7 @@ namespace PhotoMailer
 
 class PreviewFrame : public wxMiniFrame
 {
-DECLARE_DYNAMIC_CLASS(PreviewFrame)
+wxDECLARE_DYNAMIC_CLASS(PreviewFrame);
 public:
 	PreviewFrame(wxWindow* parent, wxWindowID id, const wxString& title,
 	             const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize,
