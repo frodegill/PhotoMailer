@@ -12,6 +12,7 @@
 
 #include "app.h"
 #include "thumbnail.h"
+#include "pushbutton.h"
 
 using namespace PhotoMailer;
 
@@ -251,6 +252,11 @@ void PhotoMailerFrame::InitPhotoList()
 		wxGridCellAttr* editor_attr = new wxGridCellAttr;
 		editor_attr->SetEditor(new wxGridCellTextEditor);
 
+		wxGridCellAttr* action_attr = new wxGridCellAttr;
+		action_attr->SetReadOnly();
+		PushButtonRenderer* pushbutton_renderer = new PushButtonRenderer;
+		action_attr->SetRenderer(pushbutton_renderer);
+
 		grid->SetDefaultRowSize(thumbnail_renderer->GetBestHeight());
 		grid->SetColLabelValue(0, _("Photo"));
 		grid->SetColAttr(0, photo_attr);
@@ -262,6 +268,7 @@ void PhotoMailerFrame::InitPhotoList()
 		grid->SetColLabelValue(3, _("Email"));
 		grid->SetColAttr(3, editor_attr);
 		grid->SetColLabelValue(4, _("Action"));
+		grid->SetColAttr(4, action_attr);
 	}
 }
 

@@ -48,8 +48,8 @@ public:
 										int row, int col,
 										bool isSelected) wxOVERRIDE;
 
-	virtual int GetBestHeight() const {return THUMBNAIL_SIZE+1;}
 	virtual int GetBestWidth() const {return THUMBNAIL_SIZE+1;}
+	virtual int GetBestHeight() const {return THUMBNAIL_SIZE+1;}
 	virtual wxSize GetBestSize(wxGrid& WXUNUSED(grid), wxGridCellAttr& WXUNUSED(attr), wxDC& WXUNUSED(dc),
 	                           int WXUNUSED(row), int WXUNUSED(col)) wxOVERRIDE {return wxSize(GetBestWidth(), GetBestHeight());}
 
