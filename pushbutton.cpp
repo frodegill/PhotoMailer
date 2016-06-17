@@ -9,6 +9,7 @@
 
 #include <wx/button.h>
 #include <wx/renderer.h>
+#include <wx/settings.h>
 
 #define PADDING_WIDTH (4)
 #define PADDING_HEIGHT (4)
@@ -39,9 +40,12 @@ void PushButtonRenderer::Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, cons
 
 	if ((2*PADDING_WIDTH)<button_width && (2*PADDING_HEIGHT)<button_height)
 	{
-		wxRendererNative::Get().DrawPushButton(grid.GetGridWindow(), dc,
-		                                       wxRect(rect.GetX()+PADDING_WIDTH, rect.GetY()+(rect.GetHeight()-button_height)/2,
-		                                              button_width, button_height));
+		wxRect button_rect = wxRect(rect.GetX()+PADDING_WIDTH, rect.GetY()+(rect.GetHeight()-button_height)/2, button_width, button_height);
+		wxRendererNative::Get().DrawPushButton(grid.GetGridWindow(), dc, button_rect);
+		
+		dc.SetTextForeground(grid.GetLabelTextColour());
+		dc.SetTextBackground(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE));
+		dc.DrawLabel(_("Send"), button_rect, wxALIGN_CENTER);
 	}
 }
 
