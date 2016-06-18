@@ -14,6 +14,9 @@
 #include "preview_frame.h"
 
 
+#define EQUALS (0)
+
+
 namespace PhotoMailer
 {
 

@@ -14,6 +14,13 @@
 #include "PhotoMailerGenerated.h"
 
 
+#define THUMBNAIL_COLUMN (0)
+#define FILENAME_COLUMN  (1)
+#define TIMESTAMP_COLUMN (2)
+#define EMAIL_COLUMN     (3)
+#define ACTION_COLUMN    (4)
+
+
 namespace PhotoMailer
 {
 

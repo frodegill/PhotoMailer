@@ -149,9 +149,9 @@ void PhotoMailerFrame::OnDirectoryEvent(wxFileSystemWatcherEvent& event)
 			int i = grid->GetNumberRows();
 			while (--i>=0)
 			{
-				if (0 == relative_filename.Cmp(grid->GetCellValue(i, 1)))
+				if (EQUALS == relative_filename.Cmp(grid->GetCellValue(i, FILENAME_COLUMN)))
 				{
-					grid->DeleteRows(i, 1, false);
+					grid->DeleteRows(i, FILENAME_COLUMN, false);
 					break;
 				}
 			}
@@ -178,7 +178,7 @@ void PhotoMailerFrame::OnGridSelectCell(wxGridEvent& event)
 
 	if (0<=m_selected_row && event_row<grid->GetNumberRows())
 	{
-		wxString filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_selected_row, 1);
+		wxString filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_selected_row, FILENAME_COLUMN);
 		wxGetApp().GetPreviewFrame()->ShowPhoto(filename);
 	}
 }
@@ -258,17 +258,17 @@ void PhotoMailerFrame::InitPhotoList()
 		action_attr->SetRenderer(pushbutton_renderer);
 
 		grid->SetDefaultRowSize(thumbnail_renderer->GetBestHeight());
-		grid->SetColLabelValue(0, _("Photo"));
-		grid->SetColAttr(0, photo_attr);
-		grid->SetColSize(0, thumbnail_renderer->GetBestWidth());
-		grid->SetColLabelValue(1, _("Filename"));
-		grid->SetColAttr(1, ro_attr);
-		grid->SetColLabelValue(2, _("Time"));
-		ro_attr->IncRef(); grid->SetColAttr(2, ro_attr);
-		grid->SetColLabelValue(3, _("Email"));
-		grid->SetColAttr(3, editor_attr);
-		grid->SetColLabelValue(4, _("Action"));
-		grid->SetColAttr(4, action_attr);
+		grid->SetColLabelValue(THUMBNAIL_COLUMN, _("Thumbnail"));
+		grid->SetColAttr(THUMBNAIL_COLUMN, photo_attr);
+		grid->SetColSize(THUMBNAIL_COLUMN, thumbnail_renderer->GetBestWidth());
+		grid->SetColLabelValue(FILENAME_COLUMN, _("Filename"));
+		grid->SetColAttr(FILENAME_COLUMN, ro_attr);
+		grid->SetColLabelValue(TIMESTAMP_COLUMN, _("Time"));
+		ro_attr->IncRef(); grid->SetColAttr(TIMESTAMP_COLUMN, ro_attr);
+		grid->SetColLabelValue(EMAIL_COLUMN, _("Email"));
+		grid->SetColAttr(EMAIL_COLUMN, editor_attr);
+		grid->SetColLabelValue(ACTION_COLUMN, _("Action"));
+		grid->SetColAttr(ACTION_COLUMN, action_attr);
 	}
 }
 
@@ -293,8 +293,7 @@ void PhotoMailerFrame::RefreshPhotoList()
 		listen_dir.Traverse(*this);
 	}
 	
-	grid->AutoSizeColumn(1);
-	grid->AutoSizeColumn(2);
+	grid->AutoSizeColumn(FILENAME_COLUMN);
 
 	grid->EndBatch();
 	m_is_batch_updating = false;
@@ -317,7 +316,7 @@ bool PhotoMailerFrame::AddGridItem(const wxString& filename)
 	{
 		cell_filename = filename;
 	}
-	grid->SetCellValue(current_row, 1, cell_filename);
+	grid->SetCellValue(current_row, FILENAME_COLUMN, cell_filename);
 
 	return true;
 }
@@ -333,7 +332,7 @@ bool PhotoMailerFrame::ProcessGridRow()
 
 	m_processed_grid_row++;
 
-	wxString filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_processed_grid_row, 1);
+	wxString filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_processed_grid_row, FILENAME_COLUMN);
 
 	if (!IsJpeg(filename))
 		return false;
@@ -353,17 +352,17 @@ bool PhotoMailerFrame::ProcessGridRow()
 			else
 			{
 				thumbnail_attr->SetClientObject(thumbnail_clientdata);
-				grid->SetAttr(m_processed_grid_row, 0, thumbnail_attr);
+				grid->SetAttr(m_processed_grid_row, THUMBNAIL_COLUMN, thumbnail_attr);
 			}
 		}
 
-		grid->SetCellValue(m_processed_grid_row, 2, exif_timestamp.FormatISOCombined(' '));
+		grid->SetCellValue(m_processed_grid_row, TIMESTAMP_COLUMN, exif_timestamp.FormatISOCombined(' '));
 	}
 
 	if (!m_is_batch_updating)
 	{
-		grid->AutoSizeColumn(1);
-		grid->AutoSizeColumn(2);
+		grid->AutoSizeColumn(FILENAME_COLUMN);
+		grid->AutoSizeColumn(TIMESTAMP_COLUMN);
 	}
 
 	return true;
@@ -434,7 +433,7 @@ const wxImage* PhotoMailerFrame::GetSelectedPhoto()
 
 		wxMutexLocker lock(m_photolist_mutex);
 
-		wxString filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_selected_row, 1);
+		wxString filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_selected_row, FILENAME_COLUMN);
 		LoadImage(filename, m_selected_photo_image);
 	}
 	return &m_selected_photo_image;
