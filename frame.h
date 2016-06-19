@@ -41,6 +41,8 @@ public:
 	void OnListen(wxCommandEvent& event);
 	void OnDirectoryEvent(wxFileSystemWatcherEvent& event);
 	void OnGridSelectCell(wxGridEvent& event);
+	void OnGridCellLeftClick(wxGridEvent& event);
+	void OnGridMouseUp(wxEvent& event);
 
 private:
 	bool IsValidSettings() const;
@@ -62,10 +64,12 @@ private:
 	wxFileSystemWatcher* m_filesystem_watcher;
 	wxMutex m_photolist_mutex;
 	
-	bool     m_is_batch_updating;
-	int      m_processed_grid_row;
-	int      m_selected_row;
-	wxImage  m_selected_photo_image;
+	bool    m_is_batch_updating;
+	int     m_processed_grid_row;
+	int     m_selected_row;
+	wxImage m_selected_photo_image;
+
+	int     m_pressed_send_button_row;
 
 private:
 	DECLARE_EVENT_TABLE()

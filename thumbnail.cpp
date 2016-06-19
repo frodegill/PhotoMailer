@@ -82,6 +82,7 @@ void ThumbnailRenderer::Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, const
 										rect.GetTop() + (THUMBNAIL_SIZE-thumbnail_bitmap->GetHeight())/2);
 		}
 	}
+	attr2->DecRef();
 }
 
 wxGridCellRenderer* ThumbnailRenderer::Clone() const

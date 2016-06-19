@@ -27,6 +27,7 @@ BEGIN_EVENT_TABLE(PhotoMailerFrame, wxFrame)
   EVT_BUTTON(ID_LISTEN, PhotoMailerFrame::OnListen)
 	EVT_FSWATCHER(wxID_ANY, PhotoMailerFrame::OnDirectoryEvent)
 	EVT_GRID_SELECT_CELL(PhotoMailerFrame::OnGridSelectCell)
+	EVT_GRID_CELL_LEFT_CLICK(PhotoMailerFrame::OnGridCellLeftClick)
 END_EVENT_TABLE()
 
 wxIMPLEMENT_CLASS(PhotoMailerFrame, wxFrame);
@@ -36,8 +37,13 @@ PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
   m_filesystem_watcher(nullptr),
   m_is_batch_updating(false),
   m_processed_grid_row(-1),
-  m_selected_row(-1)
+  m_selected_row(-1),
+  m_pressed_send_button_row(-1)
 {
+	GetPhotosGrid()->GetGridWindow()->Connect(wxEVT_LEFT_UP,
+	                                          static_cast<wxObjectEventFunction>(&PhotoMailerFrame::OnGridMouseUp),
+	                                          NULL, this);
+
 	SetIcon(wxIcon(photomailer_xpm));
 	SetTitle(title);
 
@@ -180,6 +186,51 @@ void PhotoMailerFrame::OnGridSelectCell(wxGridEvent& event)
 	{
 		wxString filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_selected_row, FILENAME_COLUMN);
 		wxGetApp().GetPreviewFrame()->ShowPhoto(filename);
+	}
+}
+
+void PhotoMailerFrame::OnGridCellLeftClick(wxGridEvent& event)
+{
+	wxGrid* grid = GetPhotosGrid();
+	wxGridCellAttr* attr;
+	if (-1 != m_pressed_send_button_row)
+	{
+		attr = grid->GetOrCreateCellAttr(m_pressed_send_button_row, ACTION_COLUMN);
+		SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr?attr->GetClientObject():nullptr);
+		if (sendbutton_clientdata)
+		{
+			sendbutton_clientdata->SetIsPressed(false);
+		}
+		attr->DecRef();
+	}
+
+	if (ACTION_COLUMN == event.GetCol())
+	{
+		m_pressed_send_button_row = event.GetRow();
+		attr = grid->GetOrCreateCellAttr(m_pressed_send_button_row, ACTION_COLUMN);
+		SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr?attr->GetClientObject():nullptr);
+		if (sendbutton_clientdata)
+		{
+			sendbutton_clientdata->SetIsPressed(true);
+			grid->ForceRefresh();
+		}
+		attr->DecRef();
+	}
+}
+
+void PhotoMailerFrame::OnGridMouseUp(wxEvent& WXUNUSED(event))
+{
+	if (-1 != m_pressed_send_button_row)
+	{
+		wxGrid* grid = GetPhotosGrid();
+		wxGridCellAttr* attr = grid->GetOrCreateCellAttr(m_pressed_send_button_row, ACTION_COLUMN);
+		SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr?attr->GetClientObject():nullptr);
+		if (sendbutton_clientdata && sendbutton_clientdata->GetIsPressed())
+		{
+			sendbutton_clientdata->SetIsPressed(false);
+			grid->ForceRefresh();
+		}
+		attr->DecRef();
 	}
 }
 
@@ -348,6 +399,7 @@ bool PhotoMailerFrame::ProcessGridRow()
 			if (!thumbnail_clientdata || !thumbnail_clientdata->SetThumbnail(image))
 			{
 				delete thumbnail_clientdata;
+				thumbnail_attr->DecRef();
 			}
 			else
 			{

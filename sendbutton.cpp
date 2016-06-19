@@ -85,6 +85,7 @@ void SendButtonRenderer::Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, cons
 			}
 		}
 	}
+	attr2->DecRef();
 }
 
 wxGridCellRenderer* SendButtonRenderer::Clone() const
