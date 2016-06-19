@@ -12,7 +12,7 @@
 
 #include "app.h"
 #include "thumbnail.h"
-#include "pushbutton.h"
+#include "sendbutton.h"
 
 using namespace PhotoMailer;
 
@@ -254,8 +254,8 @@ void PhotoMailerFrame::InitPhotoList()
 
 		wxGridCellAttr* action_attr = new wxGridCellAttr;
 		action_attr->SetReadOnly();
-		PushButtonRenderer* pushbutton_renderer = new PushButtonRenderer;
-		action_attr->SetRenderer(pushbutton_renderer);
+		SendButtonRenderer* sendbutton_renderer = new SendButtonRenderer;
+		action_attr->SetRenderer(sendbutton_renderer);
 
 		grid->SetDefaultRowSize(thumbnail_renderer->GetBestHeight());
 		grid->SetColLabelValue(THUMBNAIL_COLUMN, _("Thumbnail"));
@@ -357,6 +357,14 @@ bool PhotoMailerFrame::ProcessGridRow()
 		}
 
 		grid->SetCellValue(m_processed_grid_row, TIMESTAMP_COLUMN, exif_timestamp.FormatISOCombined(' '));
+
+		wxGridCellAttr* sendbutton_attr = new wxGridCellAttr;
+		if (sendbutton_attr)
+		{
+			SendButtonClientData* sendbutton_clientdata = new SendButtonClientData;
+			sendbutton_attr->SetClientObject(sendbutton_clientdata);
+			grid->SetAttr(m_processed_grid_row, ACTION_COLUMN, sendbutton_attr);
+		}
 	}
 
 	if (!m_is_batch_updating)
