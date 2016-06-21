@@ -215,6 +215,8 @@ void PhotoMailerFrame::OnGridCellLeftClick(wxGridEvent& event)
 			grid->ForceRefresh();
 		}
 		attr->DecRef();
+
+		SendMail(m_pressed_send_button_row);
 	}
 }
 
@@ -426,6 +428,15 @@ bool PhotoMailerFrame::ProcessGridRow()
 	}
 
 	return true;
+}
+
+void PhotoMailerFrame::SendMail(int row)
+{
+	wxGrid* grid = GetPhotosGrid();
+	if (0>row || grid->GetNumberRows()<=row)
+		return;
+
+	//TODO
 }
 
 bool PhotoMailerFrame::LoadImage(const wxString& filename, wxImage& image, wxDateTime* timestamp)

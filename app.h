@@ -11,6 +11,7 @@
 #include <wx/app.h>
 
 #include "frame.h"
+#include "mail.h"
 #include "preview_frame.h"
 
 
@@ -34,10 +35,13 @@ public:
 public:
 	PhotoMailerFrame* GetMainFrame() const {return m_main_frame;}
 	PreviewFrame* GetPreviewFrame();
+	Mail* GetMail() const {return m_mail;}
 
 private:
 	PhotoMailerFrame* m_main_frame;
 	PreviewFrame*     m_preview_frame;
+
+	Mail*             m_mail;
 };
 
 }

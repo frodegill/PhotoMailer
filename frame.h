@@ -54,6 +54,8 @@ private:
 	bool AddGridItem(const wxString& filename);
 	bool ProcessGridRow();
 
+	void SendMail(int row);
+
 	static bool LoadImage(const wxString& filename, wxImage& image, wxDateTime* timestamp = nullptr);
 	static bool GetExifInfo(const wxString& filename, unsigned char* orientation, wxDateTime* timestamp);
 

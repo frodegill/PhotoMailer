@@ -22,13 +22,15 @@ IMPLEMENT_CLASS(PhotoMailerApp, wxApp)
 PhotoMailerApp::PhotoMailerApp()
 : wxApp(),
   m_main_frame(nullptr),
-  m_preview_frame(nullptr)
+  m_preview_frame(nullptr),
+  m_mail(nullptr)
 {
 }
 
 PhotoMailerApp::~PhotoMailerApp()
 {
 //	delete m_main_frame; //Deleted by wxWidgets
+	delete m_mail;
 }
 
 bool PhotoMailerApp::OnInit()
@@ -63,6 +65,8 @@ bool PhotoMailerApp::OnInit()
 	}
 
 	m_main_frame->Show(true);
+
+	m_mail = new Mail;
 
 	return true;
 }
