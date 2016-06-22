@@ -17,7 +17,9 @@
 using namespace PhotoMailer;
 
 
-Mail::Mail()
+Mail::Mail(PhotoMailerFrame* frame)
+: wxThread(),
+  m_frame(frame)
 {
 	m_certificate_verifier = vmime::create<vmime::security::cert::defaultCertificateVerifier>();
 	vmime::ref<vmime::security::cert::X509Certificate> ca_certs = LoadCACertificateFile(CA_CERT_FILE);
@@ -30,6 +32,15 @@ Mail::Mail()
 }
 
 Mail::~Mail()
+{
+}
+
+wxThread::ExitCode Mail::Entry()
+{
+	return nullptr;
+}
+
+void Mail::OnExit()
 {
 }
 

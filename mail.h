@@ -10,20 +10,30 @@
 
 #include <vmime/vmime.hpp>
 
+#include "wx/thread.h"
+
 
 namespace PhotoMailer
 {
 
-class Mail
+class PhotoMailerFrame;
+
+class Mail : public wxThread
 {
 public:
-	Mail();
+	Mail(PhotoMailerFrame* frame);
 	virtual ~Mail();
+
+public: //wxThread
+	virtual wxThread::ExitCode Entry() wxOVERRIDE;
+	virtual void OnExit() wxOVERRIDE;
 
 private:
 	vmime::ref<vmime::security::cert::X509Certificate> LoadCACertificateFile(const std::string& filename);
 
 private:
+	PhotoMailerFrame* m_frame;
+
 	vmime::ref<vmime::security::cert::defaultCertificateVerifier> m_certificate_verifier;
 };
 
