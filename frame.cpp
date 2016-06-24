@@ -11,6 +11,7 @@
 #include "frame.h"
 
 #include "app.h"
+#include "mail.h"
 #include "thumbnail.h"
 #include "sendbutton.h"
 
@@ -436,7 +437,21 @@ void PhotoMailerFrame::SendMail(int row)
 	if (0>row || grid->GetNumberRows()<=row)
 		return;
 
-	//TODO
+	wxGridCellAttr* attr = grid->GetOrCreateCellAttr(row, ACTION_COLUMN);
+	SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr?attr->GetClientObject():nullptr);
+
+	MailThread* thread = new MailThread(this, grid, row);
+	if (!thread ||  wxTHREAD_NO_ERROR!=thread->Create())
+	{
+		if (sendbutton_clientdata)
+			sendbutton_clientdata->SetHasFailed(true);
+
+		return;
+	}
+
+	sendbutton_clientdata->SetHasFailed(false);
+	sendbutton_clientdata->SetProgress(0.0);
+	thread->Run();
 }
 
 bool PhotoMailerFrame::LoadImage(const wxString& filename, wxImage& image, wxDateTime* timestamp)

@@ -24,6 +24,7 @@ using namespace PhotoMailer;
 SendButtonClientData::SendButtonClientData()
 : wxClientData(),
   m_progress(0.0),
+  m_has_failed(false),
   m_is_pressed(false)
 {
 }
@@ -47,15 +48,20 @@ void SendButtonRenderer::Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, cons
 {
 	wxGridCellRenderer::Draw(grid, attr, dc, rect, row, col, isSelected);
 
+#ifndef CLIENTDATA_FIX
 	wxGridCellAttr* attr2 = grid.GetOrCreateCellAttr(row, col);
 	SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr2?attr2->GetClientObject():nullptr);
+#else
+	SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr.GetClientObject());
+#endif
+
 	if (sendbutton_clientdata)
 	{
 		float progress = sendbutton_clientdata->GetProgress();
 		if (0.0<progress)
 		{
 			dc.SetPen(*wxTRANSPARENT_PEN);
-			dc.SetBrush(*wxGREEN_BRUSH);
+			dc.SetBrush(sendbutton_clientdata->HasFailed() ? *wxRED_BRUSH : *wxGREEN_BRUSH);
 			dc.DrawRectangle(wxRect(rect.GetLeft(), rect.GetTop(), rect.GetWidth()*progress, rect.GetHeight()));
 		}
 
@@ -85,7 +91,9 @@ void SendButtonRenderer::Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, cons
 			}
 		}
 	}
+#ifndef CLIENTDATA_FIX
 	attr2->DecRef();
+#endif
 }
 
 wxGridCellRenderer* SendButtonRenderer::Clone() const

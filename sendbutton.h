@@ -25,14 +25,18 @@ public:
 	SendButtonClientData();
 	virtual ~SendButtonClientData();
 
-	void SetProgress(float progress) {m_progress=progress;}
+	void SetProgress(float progress) {if(!HasFailed()){m_progress=progress;}}
 	float GetProgress() const {return m_progress;}
 	
+	void SetHasFailed(bool has_failed) {m_has_failed=has_failed; if(HasFailed()){m_progress=100.0;}}
+	bool HasFailed() const {return m_has_failed;}
+
 	void SetIsPressed(bool is_pressed) {m_is_pressed=is_pressed;}
 	bool GetIsPressed() const {return m_is_pressed;}
 
 private:
 	float m_progress;
+	bool  m_has_failed;
 	bool  m_is_pressed;
 };
 

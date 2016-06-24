@@ -22,6 +22,8 @@ else
  CXXFLAGS += -O
 endif
 
+CXXFLAGS += -DCLIENTDATA_FIX
+
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 

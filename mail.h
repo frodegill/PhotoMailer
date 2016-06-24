@@ -10,6 +10,7 @@
 
 #include <vmime/vmime.hpp>
 
+#include "wx/grid.h"
 #include "wx/thread.h"
 
 
@@ -18,11 +19,11 @@ namespace PhotoMailer
 
 class PhotoMailerFrame;
 
-class Mail : public wxThread
+class MailThread : public wxThread
 {
 public:
-	Mail(PhotoMailerFrame* frame);
-	virtual ~Mail();
+	MailThread(PhotoMailerFrame* frame, wxGrid* grid, int row);
+	virtual ~MailThread();
 
 public: //wxThread
 	virtual wxThread::ExitCode Entry() wxOVERRIDE;
@@ -33,6 +34,8 @@ private:
 
 private:
 	PhotoMailerFrame* m_frame;
+	wxGrid* m_grid;
+	int m_row;	
 
 	vmime::ref<vmime::security::cert::defaultCertificateVerifier> m_certificate_verifier;
 };

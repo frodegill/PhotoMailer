@@ -17,9 +17,19 @@
 using namespace PhotoMailer;
 
 
-Mail::Mail(PhotoMailerFrame* frame)
+MailThread::MailThread(PhotoMailerFrame* frame, wxGrid* grid, int row)
 : wxThread(),
-  m_frame(frame)
+  m_frame(frame),
+  m_grid(grid),
+  m_row(row)
+{
+}
+
+MailThread::~MailThread()
+{
+}
+
+wxThread::ExitCode MailThread::Entry()
 {
 	m_certificate_verifier = vmime::create<vmime::security::cert::defaultCertificateVerifier>();
 	vmime::ref<vmime::security::cert::X509Certificate> ca_certs = LoadCACertificateFile(CA_CERT_FILE);
@@ -29,22 +39,15 @@ Mail::Mail(PhotoMailerFrame* frame)
 		root_ca_list.push_back(ca_certs);
 		m_certificate_verifier->setX509RootCAs(root_ca_list);
 	}
+
+	return static_cast<wxThread::ExitCode>(0);
 }
 
-Mail::~Mail()
+void MailThread::OnExit()
 {
 }
 
-wxThread::ExitCode Mail::Entry()
-{
-	return nullptr;
-}
-
-void Mail::OnExit()
-{
-}
-
-vmime::ref<vmime::security::cert::X509Certificate> Mail::LoadCACertificateFile(const std::string& filename)
+vmime::ref<vmime::security::cert::X509Certificate> MailThread::LoadCACertificateFile(const std::string& filename)
 {
 	std::ifstream cert_file;
 	cert_file.open(filename, std::ios::in|std::ios::binary);

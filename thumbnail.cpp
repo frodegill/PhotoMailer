@@ -70,8 +70,12 @@ void ThumbnailRenderer::Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, const
 {
 	wxGridCellRenderer::Draw(grid, attr, dc, rect, row, col, isSelected);
 
+#ifndef CLIENTDATA_FIX
 	wxGridCellAttr* attr2 = grid.GetOrCreateCellAttr(row, col);
 	ThumbnailClientData* thumbnail_clientdata = static_cast<ThumbnailClientData*>(attr2?attr2->GetClientObject():nullptr);
+#else
+	ThumbnailClientData* thumbnail_clientdata = static_cast<ThumbnailClientData*>(attr.GetClientObject());
+#endif
 	if (thumbnail_clientdata)
 	{
 		const wxBitmap* thumbnail_bitmap = thumbnail_clientdata->GetThumbnail();
@@ -82,7 +86,9 @@ void ThumbnailRenderer::Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, const
 										rect.GetTop() + (THUMBNAIL_SIZE-thumbnail_bitmap->GetHeight())/2);
 		}
 	}
+#ifndef CLIENTDATA_FIX
 	attr2->DecRef();
+#endif
 }
 
 wxGridCellRenderer* ThumbnailRenderer::Clone() const
