@@ -172,6 +172,8 @@ void PhotoMailerFrame::OnDirectoryEvent(wxFileSystemWatcherEvent& event)
 
 void PhotoMailerFrame::OnGridSelectCell(wxGridEvent& event)
 {
+	event.Skip();
+
 	wxGrid* grid = GetPhotosGrid();
 	if (0 >= grid->GetNumberRows()) //The initial grid->AppendCols will end up calling this (it selects cell(0,0)
 		return;
@@ -192,6 +194,8 @@ void PhotoMailerFrame::OnGridSelectCell(wxGridEvent& event)
 
 void PhotoMailerFrame::OnGridCellLeftClick(wxGridEvent& event)
 {
+	event.Skip();
+
 	wxGrid* grid = GetPhotosGrid();
 	wxGridCellAttr* attr;
 	if (-1 != m_pressed_send_button_row)
