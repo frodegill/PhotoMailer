@@ -29,6 +29,7 @@ BEGIN_EVENT_TABLE(PhotoMailerFrame, wxFrame)
 	EVT_FSWATCHER(wxID_ANY, PhotoMailerFrame::OnDirectoryEvent)
 	EVT_GRID_SELECT_CELL(PhotoMailerFrame::OnGridSelectCell)
 	EVT_GRID_CELL_LEFT_CLICK(PhotoMailerFrame::OnGridCellLeftClick)
+	EVT_MAIL_PROGRESS(MAIL_PROGRESS_EVENT, PhotoMailerFrame::OnMailProgress)
 END_EVENT_TABLE()
 
 wxIMPLEMENT_CLASS(PhotoMailerFrame, wxFrame);
@@ -238,6 +239,18 @@ void PhotoMailerFrame::OnGridMouseUp(wxEvent& WXUNUSED(event))
 			grid->ForceRefresh();
 		}
 		attr->DecRef();
+	}
+}
+
+void PhotoMailerFrame::OnMailProgress(MailProgressEvent& event)
+{
+	wxGrid* grid = event.GetGrid();
+	wxGridCellAttr* attr = grid->GetOrCreateCellAttr(event.GetRow(), ACTION_COLUMN);
+	SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr?attr->GetClientObject():nullptr);
+	if (sendbutton_clientdata && !sendbutton_clientdata->HasFailed())
+	{
+		sendbutton_clientdata->SetHasFailed(event.HasFailed());
+		sendbutton_clientdata->SetProgress(event.GetProgress());
 	}
 }
 

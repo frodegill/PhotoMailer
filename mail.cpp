@@ -57,3 +57,21 @@ vmime::ref<vmime::security::cert::X509Certificate> MailThread::LoadCACertificate
 	vmime::utility::inputStreamAdapter is(cert_file);
 	return vmime::security::cert::X509Certificate::import(is);
 }
+
+
+
+wxDEFINE_EVENT(MAIL_PROGRESS_EVENT, PhotoMailer::MailProgressEvent);
+
+MailProgressEvent::MailProgressEvent(wxGrid* grid, int row, bool has_failed, double progress, int winid, wxEventType command_type)
+: wxEvent(winid, command_type),
+  m_grid(grid),
+  m_row(row),
+  m_has_failed(has_failed),
+  m_progress(progress)
+{
+}
+
+wxEvent* MailProgressEvent::Clone() const
+{
+	return new MailProgressEvent(GetGrid(), GetRow(), HasFailed(), GetProgress());
+}

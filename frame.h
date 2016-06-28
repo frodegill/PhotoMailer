@@ -13,6 +13,8 @@
 
 #include "PhotoMailerGenerated.h"
 
+#include "mail.h"
+
 
 #define THUMBNAIL_COLUMN (0)
 #define FILENAME_COLUMN  (1)
@@ -43,6 +45,7 @@ public:
 	void OnGridSelectCell(wxGridEvent& event);
 	void OnGridCellLeftClick(wxGridEvent& event);
 	void OnGridMouseUp(wxEvent& event);
+	void OnMailProgress(MailProgressEvent& event);
 
 private:
 	bool IsValidSettings() const;
