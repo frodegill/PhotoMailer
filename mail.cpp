@@ -8,6 +8,8 @@
 #include <fstream>
 #include <ios>
 
+#include "app.h"
+#include "frame.h"
 #include "mail.h"
 
 
@@ -17,11 +19,11 @@
 using namespace PhotoMailer;
 
 
-MailThread::MailThread(PhotoMailerFrame* frame, wxGrid* grid, int row)
+MailThread::MailThread(PhotoMailerFrame* frame, int row)
 : wxThread(),
   m_frame(frame),
-  m_grid(grid),
-  m_row(row)
+  m_row(row),
+  m_has_failed(false)
 {
 }
 
@@ -40,6 +42,12 @@ wxThread::ExitCode MailThread::Entry()
 		m_certificate_verifier->setX509RootCAs(root_ca_list);
 	}
 
+	wxThreadEvent* threadEvent = new wxThreadEvent;
+	MailProgressEventPayload* payload = new MailProgressEventPayload(m_row, m_has_failed, 100.0);
+	threadEvent->SetPayload<MailProgressEventPayload*>(payload);
+	::wxQueueEvent(::wxGetApp().GetMainFrame(), threadEvent);
+
+	
 	return static_cast<wxThread::ExitCode>(0);
 }
 
@@ -60,18 +68,9 @@ vmime::ref<vmime::security::cert::X509Certificate> MailThread::LoadCACertificate
 
 
 
-wxDEFINE_EVENT(MAIL_PROGRESS_EVENT, PhotoMailer::MailProgressEvent);
-
-MailProgressEvent::MailProgressEvent(wxGrid* grid, int row, bool has_failed, double progress, int winid, wxEventType command_type)
-: wxEvent(winid, command_type),
-  m_grid(grid),
-  m_row(row),
+MailProgressEventPayload::MailProgressEventPayload(int row, bool has_failed, double progress)
+: m_row(row),
   m_has_failed(has_failed),
   m_progress(progress)
 {
-}
-
-wxEvent* MailProgressEvent::Clone() const
-{
-	return new MailProgressEvent(GetGrid(), GetRow(), HasFailed(), GetProgress());
 }

@@ -29,7 +29,7 @@ BEGIN_EVENT_TABLE(PhotoMailerFrame, wxFrame)
 	EVT_FSWATCHER(wxID_ANY, PhotoMailerFrame::OnDirectoryEvent)
 	EVT_GRID_SELECT_CELL(PhotoMailerFrame::OnGridSelectCell)
 	EVT_GRID_CELL_LEFT_CLICK(PhotoMailerFrame::OnGridCellLeftClick)
-	EVT_MAIL_PROGRESS(MAIL_PROGRESS_EVENT, PhotoMailerFrame::OnMailProgress)
+	EVT_THREAD(wxID_ANY, PhotoMailerFrame::OnMailProgress)
 END_EVENT_TABLE()
 
 wxIMPLEMENT_CLASS(PhotoMailerFrame, wxFrame);
@@ -109,7 +109,7 @@ void PhotoMailerFrame::OnIdle(wxIdleEvent& WXUNUSED(event))
 
 void PhotoMailerFrame::OnClose(wxCloseEvent& WXUNUSED(event))
 {
-	PreviewFrame* preview_frame = wxGetApp().GetPreviewFrame();
+	PreviewFrame* preview_frame = ::wxGetApp().GetPreviewFrame();
 	if (preview_frame)
 	{
 		preview_frame->Destroy();
@@ -188,8 +188,8 @@ void PhotoMailerFrame::OnGridSelectCell(wxGridEvent& event)
 
 	if (0<=m_selected_row && event_row<grid->GetNumberRows())
 	{
-		wxString filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_selected_row, FILENAME_COLUMN);
-		wxGetApp().GetPreviewFrame()->ShowPhoto(filename);
+		wxString filename;
+		::wxGetApp().GetPreviewFrame()->ShowPhoto(GetRowFilename(m_selected_row, filename) ? filename : "");
 	}
 }
 
@@ -242,15 +242,16 @@ void PhotoMailerFrame::OnGridMouseUp(wxEvent& WXUNUSED(event))
 	}
 }
 
-void PhotoMailerFrame::OnMailProgress(MailProgressEvent& event)
+void PhotoMailerFrame::OnMailProgress(wxThreadEvent& event)
 {
-	wxGrid* grid = event.GetGrid();
-	wxGridCellAttr* attr = grid->GetOrCreateCellAttr(event.GetRow(), ACTION_COLUMN);
+	MailProgressEventPayload* payload = event.GetPayload<MailProgressEventPayload*>();
+	wxGrid* grid = GetPhotosGrid();
+	wxGridCellAttr* attr = grid->GetOrCreateCellAttr(payload->GetRow(), ACTION_COLUMN);
 	SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr?attr->GetClientObject():nullptr);
 	if (sendbutton_clientdata && !sendbutton_clientdata->HasFailed())
 	{
-		sendbutton_clientdata->SetHasFailed(event.HasFailed());
-		sendbutton_clientdata->SetProgress(event.GetProgress());
+		sendbutton_clientdata->SetHasFailed(payload->HasFailed());
+		sendbutton_clientdata->SetProgress(payload->GetProgress());
 	}
 }
 
@@ -403,7 +404,9 @@ bool PhotoMailerFrame::ProcessGridRow()
 
 	m_processed_grid_row++;
 
-	wxString filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_processed_grid_row, FILENAME_COLUMN);
+	wxString filename;
+	if (!GetRowFilename(m_processed_grid_row, filename))
+		return false;
 
 	if (!IsJpeg(filename))
 		return false;
@@ -457,7 +460,7 @@ void PhotoMailerFrame::SendMail(int row)
 	wxGridCellAttr* attr = grid->GetOrCreateCellAttr(row, ACTION_COLUMN);
 	SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr?attr->GetClientObject():nullptr);
 
-	MailThread* thread = new MailThread(this, grid, row);
+	MailThread* thread = new MailThread(this, row);
 	if (!thread ||  wxTHREAD_NO_ERROR!=thread->Create())
 	{
 		if (sendbutton_clientdata)
@@ -532,12 +535,24 @@ const wxImage* PhotoMailerFrame::GetSelectedPhoto()
 {
 	if (!m_selected_photo_image.IsOk())
 	{
-		wxGrid* grid = GetPhotosGrid();
-
 		wxMutexLocker lock(m_photolist_mutex);
 
-		wxString filename = GetDirectoryPicker()->GetPath() + "/" + grid->GetCellValue(m_selected_row, FILENAME_COLUMN);
+		wxString filename;
+		if (!GetRowFilename(m_selected_row, filename))
+			return nullptr;
+
 		LoadImage(filename, m_selected_photo_image);
 	}
 	return &m_selected_photo_image;
+}
+
+bool PhotoMailerFrame::GetRowFilename(int row, wxString& filename)
+{
+	wxGrid* grid = GetPhotosGrid();
+	wxString cell_value = grid->GetCellValue(row, FILENAME_COLUMN);
+	if (cell_value.IsEmpty())
+		return false;
+
+	filename = GetDirectoryPicker()->GetPath() + "/" + cell_value;
+	return true;
 }

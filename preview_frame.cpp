@@ -48,7 +48,7 @@ PreviewFrame::~PreviewFrame()
 
 void PreviewFrame::OnClose(wxCloseEvent& WXUNUSED(event))
 {
-	wxGetApp().OnPreviewFrameClosed();
+	::wxGetApp().OnPreviewFrameClosed();
 	Destroy();
 }
 
@@ -82,7 +82,7 @@ void PreviewFrame::ShowPhoto(const wxString& filename)
 
 bool PreviewFrame::ScalePhoto(const wxSize& size)
 {
-	const wxImage* image = wxGetApp().GetMainFrame()->GetSelectedPhoto();
+	const wxImage* image = ::wxGetApp().GetMainFrame()->GetSelectedPhoto();
 	if (!image || !image->IsOk())
 		return false;
 
