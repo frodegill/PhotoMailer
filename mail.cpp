@@ -47,11 +47,37 @@ wxThread::ExitCode MailThread::Entry()
 	threadEvent->SetPayload<MailProgressEventPayload*>(payload);
 	::wxQueueEvent(::wxGetApp().GetMainFrame(), threadEvent);
 
+//TODO
 	
 	return static_cast<wxThread::ExitCode>(0);
 }
 
 void MailThread::OnExit()
+{
+}
+
+bool MailThread::cancel() const
+{
+	return false;
+}
+
+void MailThread::start(const int WXUNUSED(predictedTotal))
+{
+}
+
+void MailThread::progress(const int current, const int currentTotal)
+{
+	if (0 != currentTotal)
+	{
+		wxThreadEvent* threadEvent = new wxThreadEvent;
+		MailProgressEventPayload* payload = new MailProgressEventPayload(m_row, m_has_failed,
+																																		 static_cast<double>(current)/static_cast<double>(currentTotal));
+		threadEvent->SetPayload<MailProgressEventPayload*>(payload);
+		::wxQueueEvent(::wxGetApp().GetMainFrame(), threadEvent);
+	}
+}
+
+void MailThread::stop(const int WXUNUSED(total))
 {
 }
 

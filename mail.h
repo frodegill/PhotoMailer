@@ -19,7 +19,7 @@ namespace PhotoMailer
 {
 
 class PhotoMailerFrame;
-class MailThread : public wxThread
+class MailThread : public wxThread, public vmime::utility::progressListener
 {
 public:
 	MailThread(PhotoMailerFrame* frame, int row);
@@ -28,6 +28,12 @@ public:
 public: //wxThread
 	virtual wxThread::ExitCode Entry() wxOVERRIDE;
 	virtual void OnExit() wxOVERRIDE;
+
+public: //vmime::utility::progressListener
+	virtual bool cancel() const;
+	virtual void start(const int predictedTotal);
+	virtual void progress(const int current, const int currentTotal);
+	virtual void stop(const int total);
 
 private:
 	vmime::ref<vmime::security::cert::X509Certificate> LoadCACertificateFile(const std::string& filename);
