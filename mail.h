@@ -42,13 +42,12 @@ private:
 	void GetSMTPPassword(std::string& password);
 	void GetFrom(std::string& from);
 	void GetTo(std::string& to);
+	void GetSubject(std::string& subject);
 
 private:
 	PhotoMailerFrame* m_frame;
 	int m_row;
 	int m_has_failed;
-
-	vmime::ref<vmime::security::cert::defaultCertificateVerifier> m_certificate_verifier;
 };
 
 

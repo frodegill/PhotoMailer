@@ -33,13 +33,13 @@ MailThread::~MailThread()
 
 wxThread::ExitCode MailThread::Entry()
 {
-	m_certificate_verifier = vmime::create<vmime::security::cert::defaultCertificateVerifier>();
+	vmime::ref<vmime::security::cert::defaultCertificateVerifier> certificate_verifier = vmime::create<vmime::security::cert::defaultCertificateVerifier>();
 	vmime::ref<vmime::security::cert::X509Certificate> ca_certs = LoadCACertificateFile(CA_CERT_FILE);
 	if (ca_certs)
 	{
 		std::vector<vmime::ref<vmime::security::cert::X509Certificate>> root_ca_list;
 		root_ca_list.push_back(ca_certs);
-		m_certificate_verifier->setX509RootCAs(root_ca_list);
+		certificate_verifier->setX509RootCAs(root_ca_list);
 	}
 
 	//Set up SMTP transport
@@ -47,6 +47,7 @@ wxThread::ExitCode MailThread::Entry()
 	GetSMTPUrl(smtp_url_string);
 	vmime::ref<vmime::net::session> session = vmime::create<vmime::net::session>();
 	vmime::ref<vmime::net::transport> transport = session->getTransport(smtp_url_string);
+	transport->setCertificateVerifier(certificate_verifier);
 
 	//Set up SMTP authentication
 	std::string smtp_username_string;
@@ -65,17 +66,36 @@ wxThread::ExitCode MailThread::Entry()
 	transport->connect();
 
 	//Create message
+	vmime::headerFieldFactory* header_factory = vmime::headerFieldFactory::getInstance();
+
+	vmime::ref<vmime::message> message = vmime::create<vmime::message>();
+	vmime::ref<vmime::header> header = message->getHeader();
+
+	//FROM
+	vmime::ref<vmime::headerField> from_field = header_factory->create(vmime::fields::FROM);
 	std::string from_string;
 	GetFrom(from_string);
-	vmime::mailbox from(from_string);
+	from_field->setValue(vmime::create<vmime::mailbox>(from_string));
+	header->appendField(from_field);
 
+	//TO
+	vmime::ref<vmime::headerField> to_field = header_factory->create(vmime::fields::TO);
 	std::string to_string;
 	GetTo(to_string);
-	vmime::mailboxList to;
-	to.appendMailbox(vmime::create<vmime::mailbox>(to_string));
+	vmime::mailboxList to_list;
+	to_list.appendMailbox(vmime::create<vmime::mailbox>(to_string));
+	to_field->setValue(to_list);
+	header->appendField(to_field);
 
-//TODO
-	
+	//SUBJECT
+	vmime::ref<vmime::headerField> subject_field = header_factory->create(vmime::fields::SUBJECT);
+	std::string subject_string;
+	GetSubject(subject_string);
+	subject_field->setValue(vmime::create<vmime::mailbox>(subject_string));
+	header->appendField(subject_field);
+
+	transport->send(message, this);
+
 	transport->disconnect();
 
 	//Send completed progress
@@ -151,6 +171,11 @@ void MailThread::GetTo(std::string& to)
 {
 	wxGrid* grid = m_frame->GetPhotosGrid();
 	to = grid->GetCellValue(m_row, EMAIL_COLUMN).ToUTF8();
+}
+
+void MailThread::GetSubject(std::string& subject)
+{
+	subject = m_frame->GetSubjectCtrl()->GetValue().ToUTF8();
 }
 
 
