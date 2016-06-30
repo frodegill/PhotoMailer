@@ -42,13 +42,48 @@ wxThread::ExitCode MailThread::Entry()
 		m_certificate_verifier->setX509RootCAs(root_ca_list);
 	}
 
+	//Set up SMTP transport
+	std::string smtp_url_string;
+	GetSMTPUrl(smtp_url_string);
+	vmime::ref<vmime::net::session> session = vmime::create<vmime::net::session>();
+	vmime::ref<vmime::net::transport> transport = session->getTransport(smtp_url_string);
+
+	//Set up SMTP authentication
+	std::string smtp_username_string;
+	GetSMTPUsername(smtp_username_string);
+	if (!smtp_username_string.empty())
+	{
+		std::string smtp_password_string;
+		GetSMTPPassword(smtp_password_string);
+
+		transport->setProperty("options.need−authentication", true);
+		transport->setProperty("auth.username", smtp_username_string);
+		transport->setProperty("auth.password", smtp_password_string);
+	}
+
+	//Connect
+	transport->connect();
+
+	//Create message
+	std::string from_string;
+	GetFrom(from_string);
+	vmime::mailbox from(from_string);
+
+	std::string to_string;
+	GetTo(to_string);
+	vmime::mailboxList to;
+	to.appendMailbox(vmime::create<vmime::mailbox>(to_string));
+
+//TODO
+	
+	transport->disconnect();
+
+	//Send completed progress
 	wxThreadEvent* threadEvent = new wxThreadEvent;
 	MailProgressEventPayload* payload = new MailProgressEventPayload(m_row, m_has_failed, 100.0);
 	threadEvent->SetPayload<MailProgressEventPayload*>(payload);
 	::wxQueueEvent(::wxGetApp().GetMainFrame(), threadEvent);
 
-//TODO
-	
 	return static_cast<wxThread::ExitCode>(0);
 }
 
@@ -90,6 +125,32 @@ vmime::ref<vmime::security::cert::X509Certificate> MailThread::LoadCACertificate
 
 	vmime::utility::inputStreamAdapter is(cert_file);
 	return vmime::security::cert::X509Certificate::import(is);
+}
+
+void MailThread::GetSMTPUrl(std::string& url)
+{
+	url = (_("smtp://")+m_frame->GetSmtpServerCtrl()->GetValue()+_(":")+m_frame->GetSmtpPortCtrl()->GetValue()).ToUTF8();
+}
+
+void MailThread::GetSMTPUsername(std::string& username)
+{
+	username = m_frame->GetSmtpUsernameCtrl()->GetValue().ToUTF8();
+}
+
+void MailThread::GetSMTPPassword(std::string& password)
+{
+	password = m_frame->GetSmtpPasswordCtrl()->GetValue().ToUTF8();
+}
+
+void MailThread::GetFrom(std::string& from)
+{
+	from = m_frame->GetSenderCtrl()->GetValue().ToUTF8();
+}
+
+void MailThread::GetTo(std::string& to)
+{
+	wxGrid* grid = m_frame->GetPhotosGrid();
+	to = grid->GetCellValue(m_row, EMAIL_COLUMN).ToUTF8();
 }
 
 

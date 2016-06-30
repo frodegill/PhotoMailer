@@ -37,6 +37,11 @@ public: //vmime::utility::progressListener
 
 private:
 	vmime::ref<vmime::security::cert::X509Certificate> LoadCACertificateFile(const std::string& filename);
+	void GetSMTPUrl(std::string& url);
+	void GetSMTPUsername(std::string& username);
+	void GetSMTPPassword(std::string& password);
+	void GetFrom(std::string& from);
+	void GetTo(std::string& to);
 
 private:
 	PhotoMailerFrame* m_frame;
