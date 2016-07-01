@@ -312,6 +312,7 @@ void PhotoMailerFrame::InitPhotoList()
 		grid->DisableDragRowSize();
 		grid->AppendCols(5-number_of_cols);
 		grid->SetDefaultCellAlignment(wxALIGN_CENTRE, wxALIGN_CENTRE);
+		grid->SetDefaultCellOverflow(false);
 
 		wxGridCellAttr* photo_attr = new wxGridCellAttr;
 		photo_attr->SetReadOnly();
