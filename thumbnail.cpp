@@ -7,6 +7,8 @@
 
 #include "thumbnail.h"
 
+#include "frame.h"
+
 
 using namespace PhotoMailer;
 
@@ -94,4 +96,36 @@ void ThumbnailRenderer::Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, const
 wxGridCellRenderer* ThumbnailRenderer::Clone() const
 {
 	return new ThumbnailRenderer;
+}
+
+
+
+ThumbnailThread::ThumbnailThread(PhotoMailerFrame* frame, int row)
+: wxThread(),
+  m_frame(frame),
+  m_row(row)
+{
+}
+
+ThumbnailThread::~ThumbnailThread()
+{
+}
+
+wxThread::ExitCode ThumbnailThread::Entry()
+{
+	m_frame->GetPhotolistSemaphore()->Wait();
+	if (!TestDestroy())
+	{
+		//TODO
+	}
+	
+	m_frame->GetPhotolistSemaphore()->Post();
+	return static_cast<wxThread::ExitCode>(0);
+}
+
+
+ThumbnailEventPayload::ThumbnailEventPayload(int row, std::shared_ptr<wxBitmap> bitmap)
+: m_row(row),
+  m_bitmap(bitmap)
+{
 }

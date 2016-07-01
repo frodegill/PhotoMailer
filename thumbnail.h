@@ -8,6 +8,8 @@
   #pragma interface "thumbnail.h"
 #endif
 
+#include <memory>
+
 #include <wx/bitmap.h>
 #include <wx/clntdata.h>
 #include <wx/dc.h>
@@ -54,6 +56,37 @@ public:
 	                           int WXUNUSED(row), int WXUNUSED(col)) wxOVERRIDE {return wxSize(GetBestWidth(), GetBestHeight());}
 
 	virtual wxGridCellRenderer* Clone() const;
+};
+
+
+
+class PhotoMailerFrame;
+class ThumbnailThread : public wxThread
+{
+public:
+	ThumbnailThread(PhotoMailerFrame* frame, int row);
+	virtual ~ThumbnailThread();
+
+public: //wxThread
+	virtual wxThread::ExitCode Entry() wxOVERRIDE;
+
+private:
+	PhotoMailerFrame* m_frame;
+	int m_row;
+};
+
+class ThumbnailEventPayload
+{
+public:
+	ThumbnailEventPayload(int row, std::shared_ptr<wxBitmap> bitmap);
+	virtual ~ThumbnailEventPayload() {}
+
+	int     GetRow() const {return m_row;}
+	std::shared_ptr<wxBitmap> GetBitmap() const {return m_bitmap;}
+
+private:
+	int     m_row;
+	std::shared_ptr<wxBitmap> m_bitmap;
 };
 
 }

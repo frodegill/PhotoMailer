@@ -61,12 +61,14 @@ private:
 	static bool GetExifInfo(const wxString& filename, unsigned char* orientation, wxDateTime* timestamp);
 
 public:
+	wxSemaphore* GetPhotolistSemaphore() const {return m_photolist_thread_semaphore;}
 	const wxImage* GetSelectedPhoto();
 	bool GetRowFilename(int row, wxString& filename);
 
 private:
 	wxFileSystemWatcher* m_filesystem_watcher;
 	wxMutex m_photolist_mutex;
+	wxSemaphore* m_photolist_thread_semaphore;
 	
 	bool    m_is_batch_updating;
 	int     m_processed_grid_row;

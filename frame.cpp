@@ -37,11 +37,15 @@ wxIMPLEMENT_CLASS(PhotoMailerFrame, wxFrame);
 PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 : PhotoMailerFrameGenerated(nullptr),
   m_filesystem_watcher(nullptr),
+  m_photolist_thread_semaphore(nullptr),
   m_is_batch_updating(false),
   m_processed_grid_row(-1),
   m_selected_row(-1),
   m_pressed_send_button_row(-1)
 {
+	int cpu_count = wxThread::GetCPUCount();
+	m_photolist_thread_semaphore = new wxSemaphore(cpu_count, cpu_count);
+
 	GetPhotosGrid()->GetGridWindow()->Connect(wxEVT_LEFT_UP,
 	                                          static_cast<wxObjectEventFunction>(&PhotoMailerFrame::OnGridMouseUp),
 	                                          NULL, this);
@@ -80,6 +84,7 @@ PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 PhotoMailerFrame::~PhotoMailerFrame()
 {
 	delete m_filesystem_watcher;
+	delete m_photolist_thread_semaphore;
 
 	wxConfigBase* config = wxConfigBase::Get();
 	if (config)
