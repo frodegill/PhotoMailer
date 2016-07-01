@@ -108,14 +108,17 @@ wxThread::ExitCode MailThread::Entry()
 	}
 	catch (vmime::exception& e)
 	{
+		m_has_failed = true;
 		logger.Printf(_("Got exception: %s"), e.what());
 	}
 	catch (std::exception& e)
 	{
+		m_has_failed = true;
 		logger.Printf(_("Got exception: %s"), e.what());
 	}
 	catch (...)
 	{
+		m_has_failed = true;
 		logger.Output(_("Got unknown exception"));
 	}
 

@@ -61,7 +61,16 @@ void SendButtonRenderer::Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, cons
 		if (0.0<progress)
 		{
 			dc.SetPen(*wxTRANSPARENT_PEN);
-			dc.SetBrush(sendbutton_clientdata->HasFailed() ? *wxRED_BRUSH : *wxGREEN_BRUSH);
+			const wxBrush* brush;
+			if (sendbutton_clientdata->HasFailed())
+			{
+				brush = wxRED_BRUSH;
+			}
+			else
+			{
+				brush = (1.0>progress) ? wxBLUE_BRUSH : wxGREEN_BRUSH;
+			}
+			dc.SetBrush(*brush);
 			dc.DrawRectangle(wxRect(rect.GetLeft(), rect.GetTop(), rect.GetWidth()*progress, rect.GetHeight()));
 		}
 
