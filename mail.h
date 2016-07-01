@@ -27,7 +27,6 @@ public:
 
 public: //wxThread
 	virtual wxThread::ExitCode Entry() wxOVERRIDE;
-	virtual void OnExit() wxOVERRIDE;
 
 public: //vmime::utility::progressListener
 	virtual bool cancel() const;

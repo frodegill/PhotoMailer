@@ -131,10 +131,6 @@ wxThread::ExitCode MailThread::Entry()
 	return static_cast<wxThread::ExitCode>(0);
 }
 
-void MailThread::OnExit()
-{
-}
-
 bool MailThread::cancel() const
 {
 	return false;
