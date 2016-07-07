@@ -15,7 +15,7 @@ DEPS = $(OBJECTS:.o=.dep)
 WX_CONFIG := wx-config
 CXX = $(shell $(WX_CONFIG) --cxx)
 CXXFLAGS = $(shell $(WX_CONFIG) --cxxflags) $(shell pkg-config libexif --cflags) $(shell pkg-config vmime --cflags) -W -Wall -Werror -pipe -std=c++11
-LIBSFLAGS = $(shell $(WX_CONFIG) --libs std) $(shell pkg-config libexif --libs) $(shell pkg-config vmime --libs)
+LIBSFLAGS = $(shell $(WX_CONFIG) --libs std) $(shell pkg-config libexif --libs) $(shell pkg-config vmime --libs) -lX11
 ifdef DEBUG_INFO
  CXXFLAGS += -g
 else

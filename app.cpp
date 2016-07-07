@@ -10,6 +10,8 @@
 #include <wx/dir.h>
 #include <wx/stdpaths.h>
 
+#include <X11/Xlib.h> 
+
 #include "app.h"
 
 wxIMPLEMENT_APP(PhotoMailer::PhotoMailerApp);
@@ -24,6 +26,7 @@ PhotoMailerApp::PhotoMailerApp()
   m_main_frame(nullptr),
   m_preview_frame(nullptr)
 {
+	::XInitThreads();
 }
 
 PhotoMailerApp::~PhotoMailerApp()
