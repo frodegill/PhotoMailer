@@ -27,13 +27,12 @@ class ThumbnailClientData : public wxClientData
 {
 public:
 	ThumbnailClientData();
-	virtual ~ThumbnailClientData();
 
-	bool SetThumbnail(const wxImage& image);
-	const wxBitmap* GetThumbnail() const {return m_thumbnail_bitmap;}
+	void SetThumbnail(const wxBitmap& bitmap) {m_thumbnail_bitmap=bitmap;}
+	void GetThumbnail(wxBitmap& bitmap) const {bitmap=m_thumbnail_bitmap;}
 
 private:
-	wxBitmap* m_thumbnail_bitmap;
+	wxBitmap m_thumbnail_bitmap;
 };
 
 
@@ -41,7 +40,6 @@ class ThumbnailRenderer : public wxGridCellRenderer
 {
 public:
 	ThumbnailRenderer();
-	virtual ~ThumbnailRenderer();
 	
 	virtual void Draw(wxGrid& grid,
 										wxGridCellAttr& attr,
@@ -64,29 +62,34 @@ class PhotoMailerFrame;
 class ThumbnailThread : public wxThread
 {
 public:
-	ThumbnailThread(PhotoMailerFrame* frame, int row);
-	virtual ~ThumbnailThread();
+	ThumbnailThread(wxSemaphore* semaphore, int row, const wxString& filename);
 
 public: //wxThread
 	virtual wxThread::ExitCode Entry() wxOVERRIDE;
 
 private:
-	PhotoMailerFrame* m_frame;
+	wxThread::ExitCode CleanupAndExit(int exit_code);
+	bool CreateThumbnailBitmap(const wxImage& image, wxBitmap& bitmap);	
+	
+private:
+	wxSemaphore* m_semaphore;
 	int m_row;
+	wxString m_filename;
 };
 
 class ThumbnailEventPayload
 {
 public:
-	ThumbnailEventPayload(int row, std::shared_ptr<wxBitmap> bitmap);
-	virtual ~ThumbnailEventPayload() {}
+	ThumbnailEventPayload(int row, const wxBitmap& bitmap, const wxDateTime& exif_timestamp);
 
-	int     GetRow() const {return m_row;}
-	std::shared_ptr<wxBitmap> GetBitmap() const {return m_bitmap;}
+	int GetRow() const {return m_row;}
+	const wxBitmap* GetBitmap() const {return &m_bitmap;}
+	wxDateTime GetTimestamp() const {return m_exif_timestamp;}
 
 private:
-	int     m_row;
-	std::shared_ptr<wxBitmap> m_bitmap;
+	int m_row;
+	wxBitmap m_bitmap;
+	wxDateTime m_exif_timestamp;
 };
 
 }

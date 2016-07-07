@@ -22,7 +22,10 @@ class PhotoMailerFrame;
 class MailThread : public wxThread, public vmime::utility::progressListener
 {
 public:
-	MailThread(PhotoMailerFrame* frame, int row);
+	MailThread(int row, const wxString& smtp_server, const wxString& smtp_port,
+	           const wxString& smtp_username, const wxString& smtp_password,
+	           const wxString& from, const wxString& to,
+	           const wxString& subject, const wxString& filename);
 	virtual ~MailThread();
 
 public: //wxThread
@@ -37,16 +40,18 @@ public: //vmime::utility::progressListener
 private:
 	vmime::ref<vmime::security::cert::X509Certificate> LoadCACertificateFile(const std::string& filename);
 	void GetSMTPUrl(std::string& url);
-	void GetSMTPUsername(std::string& username);
-	void GetSMTPPassword(std::string& password);
-	void GetFrom(std::string& from);
-	void GetTo(std::string& to);
-	void GetSubject(std::string& subject);
 
 private:
-	PhotoMailerFrame* m_frame;
 	int m_row;
 	int m_has_failed;
+	wxString m_smtp_server;
+	wxString m_smtp_port;
+	wxString m_smtp_username;
+	wxString m_smtp_password;
+	wxString m_from;
+	wxString m_to;
+	wxString m_subject;
+	wxString m_filename;
 };
 
 

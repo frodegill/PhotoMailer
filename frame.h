@@ -20,6 +20,9 @@
 #define EMAIL_COLUMN     (3)
 #define ACTION_COLUMN    (4)
 
+#define THUMBNAIL_EVENT     (wxID_HIGHEST-2)
+#define MAIL_PROGRESS_EVENT (wxID_HIGHEST-1)
+
 
 namespace PhotoMailer
 {
@@ -35,7 +38,6 @@ public:
 	virtual wxDirTraverseResult OnFile(const wxString& filename);
 	virtual wxDirTraverseResult OnDir(const wxString& WXUNUSED(dirname)) {return wxDIR_CONTINUE;}
 		
-	void OnIdle(wxIdleEvent& event);
 	void OnClose(wxCloseEvent& event);
 	void OnQuit(wxCommandEvent& event);
 	void OnListen(wxCommandEvent& event);
@@ -44,21 +46,22 @@ public:
 	void OnGridCellLeftClick(wxGridEvent& event);
 	void OnGridMouseUp(wxEvent& event);
 	void OnMailProgress(wxThreadEvent& event);
+	void OnThumbnailEvent(wxThreadEvent& event);
 
 private:
 	bool IsValidSettings() const;
-	bool IsJpeg(const wxString& filename) const;
 	bool GetRelativeFilename(const wxString& absolute, wxString& relative);
 
 	void InitPhotoList();
 	void RefreshPhotoList();
 	bool AddGridItem(const wxString& filename);
-	bool ProcessGridRow();
 
 	void SendMail(int row);
 
+public:
 	static bool LoadImage(const wxString& filename, wxImage& image, wxDateTime* timestamp = nullptr);
 	static bool GetExifInfo(const wxString& filename, unsigned char* orientation, wxDateTime* timestamp);
+	static bool IsJpeg(const wxString& filename);
 
 public:
 	wxSemaphore* GetPhotolistSemaphore() const {return m_photolist_thread_semaphore;}
@@ -67,11 +70,11 @@ public:
 
 private:
 	wxFileSystemWatcher* m_filesystem_watcher;
+
 	wxMutex m_photolist_mutex;
 	wxSemaphore* m_photolist_thread_semaphore;
-	
-	bool    m_is_batch_updating;
-	int     m_processed_grid_row;
+	int     m_pending_thumbnail_count;
+
 	int     m_selected_row;
 	wxImage m_selected_photo_image;
 

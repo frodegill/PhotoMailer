@@ -21,11 +21,21 @@
 using namespace PhotoMailer;
 
 
-MailThread::MailThread(PhotoMailerFrame* frame, int row)
+MailThread::MailThread(int row, const wxString& smtp_server, const wxString& smtp_port,
+	           const wxString& smtp_username, const wxString& smtp_password,
+	           const wxString& from, const wxString& to,
+	           const wxString& subject, const wxString& filename)
 : wxThread(),
-  m_frame(frame),
   m_row(row),
-  m_has_failed(false)
+  m_has_failed(false),
+  m_smtp_server(smtp_server),
+  m_smtp_port(smtp_port),
+  m_smtp_username(smtp_username),
+  m_smtp_password(smtp_password),
+  m_from(from),
+  m_to(to),
+  m_subject(subject),
+  m_filename(filename)
 {
 }
 
@@ -54,16 +64,11 @@ wxThread::ExitCode MailThread::Entry()
 		transport->setCertificateVerifier(certificate_verifier);
 
 		//Set up SMTP authentication
-		std::string smtp_username_string;
-		GetSMTPUsername(smtp_username_string);
-		if (!smtp_username_string.empty())
+		if (!m_smtp_username.IsEmpty())
 		{
-			std::string smtp_password_string;
-			GetSMTPPassword(smtp_password_string);
-
 			transport->setProperty("options.need−authentication", true);
-			transport->setProperty("auth.username", smtp_username_string);
-			transport->setProperty("auth.password", smtp_password_string);
+			transport->setProperty("auth.username", m_smtp_username.ToStdString());
+			transport->setProperty("auth.password", m_smtp_password.ToStdString());
 		}
 
 		//Connect
@@ -72,32 +77,19 @@ wxThread::ExitCode MailThread::Entry()
 		//Create message
 		vmime::messageBuilder mb;
 
-		//FROM
-		std::string from_string;
-		GetFrom(from_string);
-		mb.setExpeditor(vmime::mailbox(from_string));
-
-
-		//TO
-		std::string to_string;
-		GetTo(to_string);
-		mb.getRecipients().appendAddress(vmime::create<vmime::mailbox>(to_string));
-
-		//SUBJECT
-		std::string subject_string;
-		GetSubject(subject_string);
-		mb.setSubject(vmime::text(subject_string));
+		mb.setExpeditor(vmime::mailbox(m_from.ToStdString()));
+		mb.getRecipients().appendAddress(vmime::create<vmime::mailbox>(m_to.ToStdString()));
+		mb.setSubject(vmime::text(m_subject.ToStdString()));
 
 		//Attachment
-		wxString wx_filename;
-		if (!m_frame->GetRowFilename(m_row, wx_filename))
+		if (m_filename.IsEmpty())
 		{
 			m_has_failed = true;
 		}
 		else
 		{
 			vmime::ref<vmime::fileAttachment> attachment =
-				vmime::create<vmime::fileAttachment>(wx_filename.ToStdString(), vmime::mediaType("image/jpeg"));
+				vmime::create<vmime::fileAttachment>(m_filename.ToStdString(), vmime::mediaType("image/jpeg"));
 			
 			mb.appendAttachment(attachment);
 
@@ -123,7 +115,7 @@ wxThread::ExitCode MailThread::Entry()
 	}
 
 	//Send completed progress
-	wxThreadEvent* threadEvent = new wxThreadEvent;
+	wxThreadEvent* threadEvent = new wxThreadEvent(wxEVT_THREAD, MAIL_PROGRESS_EVENT);
 	MailProgressEventPayload* payload = new MailProgressEventPayload(m_row, m_has_failed, 100.0);
 	threadEvent->SetPayload<MailProgressEventPayload*>(payload);
 	::wxQueueEvent(::wxGetApp().GetMainFrame(), threadEvent);
@@ -144,7 +136,7 @@ void MailThread::progress(const int current, const int currentTotal)
 {
 	if (0 != currentTotal)
 	{
-		wxThreadEvent* threadEvent = new wxThreadEvent;
+		wxThreadEvent* threadEvent = new wxThreadEvent(wxEVT_THREAD, MAIL_PROGRESS_EVENT);
 		MailProgressEventPayload* payload = new MailProgressEventPayload(m_row, m_has_failed,
 																																		 static_cast<double>(current)/static_cast<double>(currentTotal));
 		threadEvent->SetPayload<MailProgressEventPayload*>(payload);
@@ -169,33 +161,7 @@ vmime::ref<vmime::security::cert::X509Certificate> MailThread::LoadCACertificate
 
 void MailThread::GetSMTPUrl(std::string& url)
 {
-	url = (_("smtp://")+m_frame->GetSmtpServerCtrl()->GetValue()+_(":")+m_frame->GetSmtpPortCtrl()->GetValue()).ToUTF8();
-}
-
-void MailThread::GetSMTPUsername(std::string& username)
-{
-	username = m_frame->GetSmtpUsernameCtrl()->GetValue().ToUTF8();
-}
-
-void MailThread::GetSMTPPassword(std::string& password)
-{
-	password = m_frame->GetSmtpPasswordCtrl()->GetValue().ToUTF8();
-}
-
-void MailThread::GetFrom(std::string& from)
-{
-	from = m_frame->GetSenderCtrl()->GetValue().ToUTF8();
-}
-
-void MailThread::GetTo(std::string& to)
-{
-	wxGrid* grid = m_frame->GetPhotosGrid();
-	to = grid->GetCellValue(m_row, EMAIL_COLUMN).ToUTF8();
-}
-
-void MailThread::GetSubject(std::string& subject)
-{
-	subject = m_frame->GetSubjectCtrl()->GetValue().ToUTF8();
+	url = (_("smtp://")+m_smtp_server+_(":")+m_smtp_port).ToStdString();
 }
 
 

@@ -7,6 +7,7 @@
 
 #include "thumbnail.h"
 
+#include "app.h"
 #include "frame.h"
 
 
@@ -14,19 +15,91 @@ using namespace PhotoMailer;
 
 
 ThumbnailClientData::ThumbnailClientData()
-: wxClientData(),
-  m_thumbnail_bitmap(nullptr)
+: wxClientData()
 {
 }
 
-ThumbnailClientData::~ThumbnailClientData()
+
+ThumbnailRenderer::ThumbnailRenderer()
+: wxGridCellRenderer()
 {
-	delete m_thumbnail_bitmap;
 }
 
-bool ThumbnailClientData::SetThumbnail(const wxImage& image)
+void ThumbnailRenderer::Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, const wxRect& rect,
+                             int row, int col, bool isSelected)
 {
-	delete m_thumbnail_bitmap; m_thumbnail_bitmap=nullptr;
+	wxGridCellRenderer::Draw(grid, attr, dc, rect, row, col, isSelected);
+
+#ifndef CLIENTDATA_FIX
+	wxGridCellAttr* attr2 = grid.GetOrCreateCellAttr(row, col);
+	ThumbnailClientData* thumbnail_clientdata = static_cast<ThumbnailClientData*>(attr2?attr2->GetClientObject():nullptr);
+#else
+	ThumbnailClientData* thumbnail_clientdata = static_cast<ThumbnailClientData*>(attr.GetClientObject());
+#endif
+	if (thumbnail_clientdata)
+	{
+		wxBitmap thumbnail_bitmap;
+		thumbnail_clientdata->GetThumbnail(thumbnail_bitmap);
+		if (thumbnail_bitmap.IsOk())
+		{
+			dc.DrawBitmap(thumbnail_bitmap,
+										rect.GetLeft() + (THUMBNAIL_SIZE-thumbnail_bitmap.GetWidth())/2,
+										rect.GetTop() + (THUMBNAIL_SIZE-thumbnail_bitmap.GetHeight())/2);
+		}
+	}
+#ifndef CLIENTDATA_FIX
+	attr2->DecRef();
+#endif
+}
+
+wxGridCellRenderer* ThumbnailRenderer::Clone() const
+{
+	return new ThumbnailRenderer;
+}
+
+
+
+ThumbnailThread::ThumbnailThread(wxSemaphore* semaphore, int row, const wxString& filename)
+: wxThread(),
+  m_semaphore(semaphore),
+  m_row(row),
+  m_filename(filename)
+{
+}
+
+wxThread::ExitCode ThumbnailThread::Entry()
+{
+	m_semaphore->Wait();
+	if (TestDestroy())
+		return CleanupAndExit(-1);
+
+	wxImage image;
+	wxDateTime exif_timestamp;
+	wxBitmap bitmap;
+	if (m_filename.IsEmpty() ||
+	    !PhotoMailerFrame::IsJpeg(m_filename) ||
+	    !PhotoMailerFrame::LoadImage(m_filename, image, &exif_timestamp) ||
+	    !CreateThumbnailBitmap(image, bitmap))
+	{
+		return CleanupAndExit(-1);
+	}
+
+	wxThreadEvent* threadEvent = new wxThreadEvent(wxEVT_THREAD, THUMBNAIL_EVENT);
+	ThumbnailEventPayload* payload = new ThumbnailEventPayload(m_row, bitmap, exif_timestamp);
+	threadEvent->SetPayload<ThumbnailEventPayload*>(payload);
+	::wxQueueEvent(::wxGetApp().GetMainFrame(), threadEvent);
+
+	return CleanupAndExit(0);
+}
+
+wxThread::ExitCode ThumbnailThread::CleanupAndExit(int exit_code)
+{
+	m_semaphore->Post();
+	return reinterpret_cast<wxThread::ExitCode>(exit_code);
+}
+
+bool ThumbnailThread::CreateThumbnailBitmap(const wxImage& image, wxBitmap& bitmap)
+{
 	if (!image.IsOk())
 		return false;
 
@@ -47,85 +120,14 @@ bool ThumbnailClientData::SetThumbnail(const wxImage& image)
 		image_height = static_cast<float>(THUMBNAIL_SIZE)/image_ratio;
 	}
 
-	m_thumbnail_bitmap = new wxBitmap(image.Scale(image_width, image_height, wxIMAGE_QUALITY_HIGH));
-	if (!m_thumbnail_bitmap->IsOk())
-	{
-		delete m_thumbnail_bitmap; m_thumbnail_bitmap=nullptr;
-		return false;
-	}
-
-	return true;
+	bitmap = wxBitmap(image.Scale(image_width, image_height, wxIMAGE_QUALITY_HIGH));
+	return bitmap.IsOk();
 }
 
 
-ThumbnailRenderer::ThumbnailRenderer()
-: wxGridCellRenderer()
-{
-}
-
-ThumbnailRenderer::~ThumbnailRenderer()
-{
-}
-
-void ThumbnailRenderer::Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, const wxRect& rect,
-                             int row, int col, bool isSelected)
-{
-	wxGridCellRenderer::Draw(grid, attr, dc, rect, row, col, isSelected);
-
-#ifndef CLIENTDATA_FIX
-	wxGridCellAttr* attr2 = grid.GetOrCreateCellAttr(row, col);
-	ThumbnailClientData* thumbnail_clientdata = static_cast<ThumbnailClientData*>(attr2?attr2->GetClientObject():nullptr);
-#else
-	ThumbnailClientData* thumbnail_clientdata = static_cast<ThumbnailClientData*>(attr.GetClientObject());
-#endif
-	if (thumbnail_clientdata)
-	{
-		const wxBitmap* thumbnail_bitmap = thumbnail_clientdata->GetThumbnail();
-		if (thumbnail_bitmap && thumbnail_bitmap->IsOk())
-		{
-			dc.DrawBitmap(*thumbnail_bitmap,
-										rect.GetLeft() + (THUMBNAIL_SIZE-thumbnail_bitmap->GetWidth())/2,
-										rect.GetTop() + (THUMBNAIL_SIZE-thumbnail_bitmap->GetHeight())/2);
-		}
-	}
-#ifndef CLIENTDATA_FIX
-	attr2->DecRef();
-#endif
-}
-
-wxGridCellRenderer* ThumbnailRenderer::Clone() const
-{
-	return new ThumbnailRenderer;
-}
-
-
-
-ThumbnailThread::ThumbnailThread(PhotoMailerFrame* frame, int row)
-: wxThread(),
-  m_frame(frame),
-  m_row(row)
-{
-}
-
-ThumbnailThread::~ThumbnailThread()
-{
-}
-
-wxThread::ExitCode ThumbnailThread::Entry()
-{
-	m_frame->GetPhotolistSemaphore()->Wait();
-	if (!TestDestroy())
-	{
-		//TODO
-	}
-	
-	m_frame->GetPhotolistSemaphore()->Post();
-	return static_cast<wxThread::ExitCode>(0);
-}
-
-
-ThumbnailEventPayload::ThumbnailEventPayload(int row, std::shared_ptr<wxBitmap> bitmap)
+ThumbnailEventPayload::ThumbnailEventPayload(int row, const wxBitmap& bitmap, const wxDateTime& exif_timestamp)
 : m_row(row),
-  m_bitmap(bitmap)
+  m_exif_timestamp(exif_timestamp)
 {
+	m_bitmap = bitmap.GetSubBitmap(wxRect(0, 0, bitmap.GetWidth(), bitmap.GetHeight()));
 }
