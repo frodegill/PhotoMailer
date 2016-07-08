@@ -84,6 +84,9 @@ wxThread::ExitCode ThumbnailThread::Entry()
 		return CleanupAndExit(-1);
 	}
 
+	if (TestDestroy())
+		return CleanupAndExit(-1);
+
 	wxThreadEvent* threadEvent = new wxThreadEvent(wxEVT_THREAD, THUMBNAIL_EVENT);
 	ThumbnailEventPayload* payload = new ThumbnailEventPayload(m_row, bitmap, exif_timestamp);
 	threadEvent->SetPayload<ThumbnailEventPayload*>(payload);

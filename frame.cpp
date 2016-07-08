@@ -186,7 +186,7 @@ void PhotoMailerFrame::OnGridSelectCell(wxGridEvent& event)
 	if (0<=m_selected_row && event_row<grid->GetNumberRows())
 	{
 		wxString filename;
-		::wxGetApp().GetPreviewFrame()->ShowPhoto(GetRowFilename(m_selected_row, filename) ? filename : "");
+		::wxGetApp().GetPreviewFrame()->ShowPhoto();
 	}
 }
 

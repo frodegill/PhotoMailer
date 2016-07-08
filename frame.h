@@ -20,6 +20,7 @@
 #define EMAIL_COLUMN     (3)
 #define ACTION_COLUMN    (4)
 
+#define PREVIEW_EVENT       (wxID_HIGHEST-3)
 #define THUMBNAIL_EVENT     (wxID_HIGHEST-2)
 #define MAIL_PROGRESS_EVENT (wxID_HIGHEST-1)
 

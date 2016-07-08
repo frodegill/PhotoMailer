@@ -21,14 +21,14 @@ BEGIN_EVENT_TABLE(PreviewFrame, wxMiniFrame)
 	EVT_CLOSE(PreviewFrame::OnClose)
 	EVT_SIZE(PreviewFrame::OnSize)
 	EVT_PAINT(PreviewFrame::OnPaint)
+	EVT_THREAD(PREVIEW_EVENT, PreviewFrame::OnPreviewEvent)
 END_EVENT_TABLE()
 
 wxIMPLEMENT_CLASS(PreviewFrame, wxMiniFrame);
 
 PreviewFrame::PreviewFrame(wxWindow* parent, wxWindowID id, const wxString& title,
                            const wxPoint& pos, const wxSize& size, long style)
-: wxMiniFrame(parent, id, title, pos, size, style),
-  m_selected_photo_bitmap(nullptr)
+: wxMiniFrame(parent, id, title, pos, size, style)
 {
 	SetIcon(wxIcon(photomailer_preview_xpm));
 	SetSize(-1,-1);
@@ -41,11 +41,6 @@ PreviewFrame::PreviewFrame(wxWindow* parent, wxWindowID id, const wxString& titl
 #endif
 }
 
-PreviewFrame::~PreviewFrame()
-{
-	delete m_selected_photo_bitmap;
-}
-
 void PreviewFrame::OnClose(wxCloseEvent& WXUNUSED(event))
 {
 	::wxGetApp().OnPreviewFrameClosed();
@@ -54,44 +49,78 @@ void PreviewFrame::OnClose(wxCloseEvent& WXUNUSED(event))
 
 void PreviewFrame::OnSize(wxSizeEvent& event)
 {
-	delete m_selected_photo_bitmap; m_selected_photo_bitmap = nullptr;
-	Refresh();
+	ShowPhoto();
 	event.Skip(true);
 }
 
 void PreviewFrame::OnPaint(wxPaintEvent& WXUNUSED(event))
 {
-	wxPaintDC dc(this);
-	wxSize dc_size = dc.GetSize();
-	if (!m_selected_photo_bitmap)
+	wxMutexLocker lock(m_preview_mutex);
+
+	if (m_selected_photo_bitmap.IsOk())
 	{
-		if (!ScalePhoto(dc_size))
-			return;
+		wxPaintDC dc(this);
+		wxSize dc_size = dc.GetSize();
+		dc.DrawBitmap(m_selected_photo_bitmap,
+									(dc_size.GetWidth()-m_selected_photo_bitmap.GetWidth())/2,
+									(dc_size.GetHeight()-m_selected_photo_bitmap.GetHeight())/2);
 	}
-	dc.DrawBitmap(*m_selected_photo_bitmap,
-	              (dc_size.GetWidth()-m_selected_photo_bitmap->GetWidth())/2,
-	              (dc_size.GetHeight()-m_selected_photo_bitmap->GetHeight())/2);
 }
 
-void PreviewFrame::ShowPhoto(const wxString& filename)
+void PreviewFrame::OnPreviewEvent(wxThreadEvent& event)
 {
-	SetTitle(filename);
-	delete m_selected_photo_bitmap; m_selected_photo_bitmap = nullptr;
-	Refresh();
+	wxMutexLocker lock(m_preview_mutex);
+
+	PreviewEventPayload* payload = event.GetPayload<PreviewEventPayload*>();
+	if (payload)
+	{
+		const wxBitmap* bitmap = payload->GetBitmap();
+		m_selected_photo_bitmap = bitmap->GetSubBitmap(wxRect(0, 0, bitmap->GetWidth(), bitmap->GetHeight()));
+		delete payload;
+		Refresh();
+	}
 }
 
-bool PreviewFrame::ScalePhoto(const wxSize& size)
+void PreviewFrame::ShowPhoto()
 {
+	PreviewThread* thread = new PreviewThread(this, GetClientSize());
+	if (thread)
+	{
+		if (wxTHREAD_NO_ERROR==thread->Create())
+		{
+			thread->SetPriority(wxPRIORITY_MIN);
+			thread->Run();
+		}
+		else
+		{
+			delete thread;
+		}
+	}
+}
+
+
+PreviewThread::PreviewThread(wxEvtHandler* event_handler, const wxSize& size)
+: wxThread(),
+  m_event_handler(event_handler),
+  m_size(size)
+{
+}
+
+wxThread::ExitCode PreviewThread::Entry()
+{
+	if (TestDestroy())
+		return CleanupAndExit(-1);
+
 	const wxImage* image = ::wxGetApp().GetMainFrame()->GetSelectedPhoto();
 	if (!image || !image->IsOk())
-		return false;
+		return CleanupAndExit(-1);
 
-	int dc_width = size.GetWidth();
-	int dc_height = size.GetHeight();
+	int dc_width = m_size.GetWidth();
+	int dc_height = m_size.GetHeight();
 	int image_width = image->GetWidth();
 	int image_height = image->GetHeight();
 	if (0==dc_width || 0==dc_height || 0==image_width || 0==image_height)
-		return false;
+		return CleanupAndExit(-1);
 
 	float dc_ratio = static_cast<float>(dc_width)/static_cast<float>(dc_height);
 	float image_ratio = static_cast<float>(image_width)/static_cast<float>(image_height);
@@ -106,14 +135,21 @@ bool PreviewFrame::ScalePhoto(const wxSize& size)
 		image_height = static_cast<float>(dc_width)/image_ratio;
 	}
 
-	if (!m_selected_photo_bitmap)
-	{
-		m_selected_photo_bitmap = new wxBitmap(image->Scale(image_width, image_height, wxIMAGE_QUALITY_NORMAL));
-		if (!m_selected_photo_bitmap->IsOk())
-		{
-			delete m_selected_photo_bitmap; m_selected_photo_bitmap = nullptr;
-			return false;
-		}
-	}
-	return true;
+	wxThreadEvent* threadEvent = new wxThreadEvent(wxEVT_THREAD, PREVIEW_EVENT);
+	PreviewEventPayload* payload = new PreviewEventPayload(image->Scale(image_width, image_height, wxIMAGE_QUALITY_NORMAL));
+	threadEvent->SetPayload<PreviewEventPayload*>(payload);
+	::wxQueueEvent(m_event_handler, threadEvent);
+
+	return CleanupAndExit(0);
+}
+
+wxThread::ExitCode PreviewThread::CleanupAndExit(int exit_code)
+{
+	return reinterpret_cast<wxThread::ExitCode>(exit_code);
+}
+
+
+PreviewEventPayload::PreviewEventPayload(const wxImage& image)
+{
+	m_bitmap = wxBitmap(image);
 }

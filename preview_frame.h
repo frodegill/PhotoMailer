@@ -21,23 +21,49 @@ public:
 	PreviewFrame(wxWindow* parent, wxWindowID id, const wxString& title,
 	             const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize,
 	             long style = wxCAPTION | wxRESIZE_BORDER);
-	virtual ~PreviewFrame();
 
 	void OnClose(wxCloseEvent& event);
 	void OnSize(wxSizeEvent& event);
 	void OnPaint(wxPaintEvent& event);
+	void OnPreviewEvent(wxThreadEvent& event);
 
 public:
-	void ShowPhoto(const wxString& filename);
+	void ShowPhoto();
 
 private:
-	bool ScalePhoto(const wxSize& size);
+	wxMutex m_preview_mutex;
 
-private:
-	wxBitmap* m_selected_photo_bitmap;
+	wxBitmap m_selected_photo_bitmap;
 
 private:
 	DECLARE_EVENT_TABLE()
+};
+
+
+class PreviewThread : public wxThread
+{
+public:
+	PreviewThread(wxEvtHandler* event_handler, const wxSize& size);
+
+public: //wxThread
+	virtual wxThread::ExitCode Entry() wxOVERRIDE;
+
+private:
+	wxThread::ExitCode CleanupAndExit(int exit_code);
+	bool CreatePreviewBitmap(const wxImage& image, wxBitmap& bitmap);	
+
+private:
+	wxEvtHandler* m_event_handler;
+	wxSize m_size;
+};
+
+class PreviewEventPayload
+{
+public:
+	PreviewEventPayload(const wxImage& image);
+	const wxBitmap* GetBitmap() const {return &m_bitmap;}
+private:
+	wxBitmap m_bitmap;
 };
 
 }
