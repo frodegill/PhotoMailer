@@ -65,17 +65,11 @@ ThumbnailThread::ThumbnailThread(wxSemaphore* semaphore, int row, const wxString
   m_row(row),
   m_filename(filename)
 {
-	wxMessageOutputDebug logger;
-	logger.Printf(_("ThumbnailThread thread %p ctor"), this);
-
 	::wxGetApp().GetMainFrame()->RegisterThread(this);
 }
 
 ThumbnailThread::~ThumbnailThread()
 {
-	wxMessageOutputDebug logger;
-	logger.Printf(_("ThumbnailThread thread %p dtor"), this);
-
 	::wxGetApp().GetMainFrame()->UnregisterThread(this);
 }
 
