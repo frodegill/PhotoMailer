@@ -37,6 +37,7 @@ wxIMPLEMENT_CLASS(PhotoMailerFrame, wxFrame);
 PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 : PhotoMailerFrameGenerated(nullptr),
   m_filesystem_watcher(nullptr),
+  m_is_shutting_down(false),
   m_photolist_thread_semaphore(nullptr),
   m_pending_thumbnail_count(0),
   m_selected_row(-1),
@@ -106,6 +107,9 @@ wxDirTraverseResult PhotoMailerFrame::OnFile(const wxString& filename)
 
 void PhotoMailerFrame::OnClose(wxCloseEvent& WXUNUSED(event))
 {
+	DestroyThreads();
+	WaitForDestroyedThreads();
+
 	PreviewFrame* preview_frame = ::wxGetApp().GetPreviewFrame();
 	if (preview_frame)
 	{
@@ -307,6 +311,62 @@ void PhotoMailerFrame::OnThumbnailEvent(wxThreadEvent& event)
 	}
 }
 
+void PhotoMailerFrame::RegisterThread(wxThread* thread)
+{
+	wxMutexLocker lock(m_threadlist_mutex);
+
+	m_threadlist.insert(thread);
+	if (m_is_shutting_down)
+	{
+		thread->Delete();
+	}
+}
+
+void PhotoMailerFrame::UnregisterThread(wxThread* thread)
+{
+	wxMutexLocker lock(m_threadlist_mutex);
+
+	m_threadlist.erase(thread);
+}
+
+void PhotoMailerFrame::DestroyThreads()
+{
+	wxMutexLocker lock(m_threadlist_mutex);
+	
+	m_is_shutting_down = true;
+	for(std::unordered_set<wxThread*>::iterator it = m_threadlist.begin(); it!=m_threadlist.end(); ++it) {
+		(*it)->Delete();
+	}
+}
+
+void PhotoMailerFrame::WaitForDestroyedThreads()
+{
+	int old_count = -1;
+	int thread_count;
+	int waits = 0;
+	do {
+		{
+			wxMutexLocker lock(m_threadlist_mutex);
+			thread_count = m_threadlist.size();
+		}
+
+		if (old_count == thread_count)
+		{
+			waits++;
+		}
+		else
+		{
+			old_count = thread_count;
+			waits = 0;
+		}
+
+		if (0 < thread_count)
+		{
+			::wxSleep(1);
+		}
+	} while (10>waits && 0<thread_count);
+}
+
 bool PhotoMailerFrame::IsValidSettings() const
 {
 	//TODO
@@ -426,16 +486,8 @@ bool PhotoMailerFrame::AddGridItem(const wxString& filename)
 	ThumbnailThread* thread = new ThumbnailThread(m_photolist_thread_semaphore, current_row, filename);
 	if (thread)
 	{
-		if (wxTHREAD_NO_ERROR==thread->Create())
-		{
-			thread->SetPriority(wxPRIORITY_MIN);
-			m_pending_thumbnail_count++;
-			thread->Run();
-		}
-		else
-		{
-			delete thread;
-		}
+		m_pending_thumbnail_count++;
+		thread->Run();
 	}
 
 	return true;
@@ -460,9 +512,8 @@ void PhotoMailerFrame::SendMail(int row)
 		GetSenderCtrl()->GetValue(), grid->GetCellValue(row, EMAIL_COLUMN),
 		GetSubjectCtrl()->GetValue(), filename);
 
-	if (!thread || wxTHREAD_NO_ERROR!=thread->Create())
+	if (!thread)
 	{
-		delete thread;
 		sendbutton_clientdata->SetHasFailed(true);
 		return;
 	}
@@ -547,6 +598,9 @@ bool PhotoMailerFrame::IsJpeg(const wxString& filename)
 
 const wxImage* PhotoMailerFrame::GetSelectedPhoto()
 {
+	if (IsBeingDeleted())
+		return nullptr;
+
 	if (!m_selected_photo_image.IsOk())
 	{
 		wxMutexLocker lock(m_photolist_mutex);
@@ -563,6 +617,12 @@ const wxImage* PhotoMailerFrame::GetSelectedPhoto()
 bool PhotoMailerFrame::GetRowFilename(int row, wxString& filename)
 {
 	wxGrid* grid = GetPhotosGrid();
+	if (!grid)
+		return false;
+
+	if (0>row || grid->GetNumberRows()<=row)
+		return false;
+
 	wxString cell_value = grid->GetCellValue(row, FILENAME_COLUMN);
 	if (cell_value.IsEmpty())
 		return false;

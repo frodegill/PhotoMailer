@@ -44,6 +44,7 @@ class PreviewThread : public wxThread
 {
 public:
 	PreviewThread(wxEvtHandler* event_handler, const wxSize& size);
+	virtual ~PreviewThread();
 
 public: //wxThread
 	virtual wxThread::ExitCode Entry() wxOVERRIDE;

@@ -11,6 +11,8 @@
 #include <wx/dir.h>
 #include <wx/fswatcher.h>
 
+#include <unordered_set>
+
 #include "PhotoMailerGenerated.h"
 
 
@@ -49,6 +51,13 @@ public:
 	void OnMailProgress(wxThreadEvent& event);
 	void OnThumbnailEvent(wxThreadEvent& event);
 
+public:
+	void RegisterThread(wxThread* thread);
+	void UnregisterThread(wxThread* thread);
+private:
+	void DestroyThreads();
+	void WaitForDestroyedThreads();
+
 private:
 	bool IsValidSettings() const;
 	bool GetRelativeFilename(const wxString& absolute, wxString& relative);
@@ -71,6 +80,10 @@ public:
 
 private:
 	wxFileSystemWatcher* m_filesystem_watcher;
+
+	wxMutex m_threadlist_mutex;
+	std::unordered_set<wxThread*> m_threadlist;
+	bool m_is_shutting_down;
 
 	wxMutex m_photolist_mutex;
 	wxSemaphore* m_photolist_thread_semaphore;

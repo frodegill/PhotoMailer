@@ -65,6 +65,18 @@ ThumbnailThread::ThumbnailThread(wxSemaphore* semaphore, int row, const wxString
   m_row(row),
   m_filename(filename)
 {
+	wxMessageOutputDebug logger;
+	logger.Printf(_("ThumbnailThread thread %p ctor"), this);
+
+	::wxGetApp().GetMainFrame()->RegisterThread(this);
+}
+
+ThumbnailThread::~ThumbnailThread()
+{
+	wxMessageOutputDebug logger;
+	logger.Printf(_("ThumbnailThread thread %p dtor"), this);
+
+	::wxGetApp().GetMainFrame()->UnregisterThread(this);
 }
 
 wxThread::ExitCode ThumbnailThread::Entry()
@@ -87,10 +99,14 @@ wxThread::ExitCode ThumbnailThread::Entry()
 	if (TestDestroy())
 		return CleanupAndExit(-1);
 
+	wxWindow* event_handler = ::wxGetApp().GetMainFrame();
+	if (!event_handler || event_handler->IsBeingDeleted())
+		return CleanupAndExit(-1);
+		
 	wxThreadEvent* threadEvent = new wxThreadEvent(wxEVT_THREAD, THUMBNAIL_EVENT);
 	ThumbnailEventPayload* payload = new ThumbnailEventPayload(m_row, bitmap, exif_timestamp);
 	threadEvent->SetPayload<ThumbnailEventPayload*>(payload);
-	::wxQueueEvent(::wxGetApp().GetMainFrame(), threadEvent);
+	::wxQueueEvent(event_handler, threadEvent);
 
 	return CleanupAndExit(0);
 }

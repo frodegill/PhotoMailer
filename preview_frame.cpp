@@ -86,15 +86,7 @@ void PreviewFrame::ShowPhoto()
 	PreviewThread* thread = new PreviewThread(this, GetClientSize());
 	if (thread)
 	{
-		if (wxTHREAD_NO_ERROR==thread->Create())
-		{
-			thread->SetPriority(wxPRIORITY_MIN);
-			thread->Run();
-		}
-		else
-		{
-			delete thread;
-		}
+		thread->Run();
 	}
 }
 
@@ -104,6 +96,12 @@ PreviewThread::PreviewThread(wxEvtHandler* event_handler, const wxSize& size)
   m_event_handler(event_handler),
   m_size(size)
 {
+	::wxGetApp().GetMainFrame()->RegisterThread(this);
+}
+
+PreviewThread::~PreviewThread()
+{
+	::wxGetApp().GetMainFrame()->UnregisterThread(this);
 }
 
 wxThread::ExitCode PreviewThread::Entry()

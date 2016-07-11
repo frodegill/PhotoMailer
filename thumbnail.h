@@ -63,6 +63,7 @@ class ThumbnailThread : public wxThread
 {
 public:
 	ThumbnailThread(wxSemaphore* semaphore, int row, const wxString& filename);
+	virtual ~ThumbnailThread();
 
 public: //wxThread
 	virtual wxThread::ExitCode Entry() wxOVERRIDE;

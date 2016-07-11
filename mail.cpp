@@ -37,10 +37,12 @@ MailThread::MailThread(int row, const wxString& smtp_server, const wxString& smt
   m_subject(subject),
   m_filename(filename)
 {
+	::wxGetApp().GetMainFrame()->RegisterThread(this);
 }
 
 MailThread::~MailThread()
 {
+	::wxGetApp().GetMainFrame()->UnregisterThread(this);
 }
 
 wxThread::ExitCode MailThread::Entry()
