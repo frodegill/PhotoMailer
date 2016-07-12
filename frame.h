@@ -48,6 +48,7 @@ public:
 	void OnGridSelectCell(wxGridEvent& event);
 	void OnGridCellLeftClick(wxGridEvent& event);
 	void OnGridMouseUp(wxEvent& event);
+	void OnGridCellChanged(wxGridEvent& event);
 	void OnMailProgress(wxThreadEvent& event);
 	void OnThumbnailEvent(wxThreadEvent& event);
 
