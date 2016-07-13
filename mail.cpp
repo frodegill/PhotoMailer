@@ -8,6 +8,8 @@
 #include <fstream>
 #include <ios>
 
+#include <vmime/platforms/posix/posixHandler.hpp>
+
 #include <wx/msgout.h>
 
 #include "app.h"
@@ -61,8 +63,9 @@ wxThread::ExitCode MailThread::Entry()
 		//Set up SMTP transport
 		std::string smtp_url_string;
 		GetSMTPUrl(smtp_url_string);
+		vmime::platform::setHandler<vmime::platforms::posix::posixHandler>();
 		vmime::ref<vmime::net::session> session = vmime::create<vmime::net::session>();
-		vmime::ref<vmime::net::transport> transport = session->getTransport(smtp_url_string);
+		vmime::ref<vmime::net::transport> transport = session->getTransport(vmime::utility::url(smtp_url_string));
 		transport->setCertificateVerifier(certificate_verifier);
 
 		//Set up SMTP authentication
