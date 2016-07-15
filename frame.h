@@ -60,13 +60,14 @@ private:
 	void WaitForDestroyedThreads();
 
 private:
-	bool IsValidSettings() const;
+	bool IsValidSettings();
 	bool GetRelativeFilename(const wxString& absolute, wxString& relative);
 
 	void InitPhotoList();
 	void RefreshPhotoList();
 	bool AddGridItem(const wxString& filename);
 
+	void SelectPhoto(int row);
 	void SendMail(int row);
 
 public:
@@ -76,7 +77,7 @@ public:
 
 public:
 	wxSemaphore* GetPhotolistSemaphore() const {return m_photolist_thread_semaphore;}
-	const wxImage* GetSelectedPhoto();
+	bool GetSelectedPhoto(wxImage& image);
 	bool GetRowFilename(int row, wxString& filename);
 
 private:
@@ -91,6 +92,8 @@ private:
 	int     m_pending_thumbnail_count;
 
 	int     m_selected_row;
+
+	wxMutex m_selected_photo_mutex;
 	wxImage m_selected_photo_image;
 
 	int     m_pressed_send_button_row;

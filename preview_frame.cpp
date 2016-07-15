@@ -109,14 +109,14 @@ wxThread::ExitCode PreviewThread::Entry()
 	if (TestDestroy())
 		return CleanupAndExit(-1);
 
-	const wxImage* image = ::wxGetApp().GetMainFrame()->GetSelectedPhoto();
-	if (!image || !image->IsOk())
+	wxImage image;
+	if (!::wxGetApp().GetMainFrame()->GetSelectedPhoto(image) || !image.IsOk())
 		return CleanupAndExit(-1);
 
 	int dc_width = m_size.GetWidth();
 	int dc_height = m_size.GetHeight();
-	int image_width = image->GetWidth();
-	int image_height = image->GetHeight();
+	int image_width = image.GetWidth();
+	int image_height = image.GetHeight();
 	if (0==dc_width || 0==dc_height || 0==image_width || 0==image_height)
 		return CleanupAndExit(-1);
 
@@ -134,7 +134,7 @@ wxThread::ExitCode PreviewThread::Entry()
 	}
 
 	wxThreadEvent* threadEvent = new wxThreadEvent(wxEVT_THREAD, PREVIEW_EVENT);
-	PreviewEventPayload* payload = new PreviewEventPayload(image->Scale(image_width, image_height, wxIMAGE_QUALITY_NORMAL));
+	PreviewEventPayload* payload = new PreviewEventPayload(image.Scale(image_width, image_height, wxIMAGE_QUALITY_NORMAL));
 	threadEvent->SetPayload<PreviewEventPayload*>(payload);
 	::wxQueueEvent(m_event_handler, threadEvent);
 

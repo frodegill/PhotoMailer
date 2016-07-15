@@ -189,14 +189,7 @@ void PhotoMailerFrame::OnGridSelectCell(wxGridEvent& event)
 	if (m_selected_row == event_row)
 		return;
 
-	m_selected_row = event_row;
-	m_selected_photo_image.Destroy();
-
-	if (0<=m_selected_row && event_row<grid->GetNumberRows())
-	{
-		wxString filename;
-		::wxGetApp().GetPreviewFrame()->ShowPhoto();
-	}
+	SelectPhoto(event_row);
 }
 
 void PhotoMailerFrame::OnGridCellLeftClick(wxGridEvent& event)
@@ -403,9 +396,17 @@ void PhotoMailerFrame::WaitForDestroyedThreads()
 	} while (10>waits && 0<thread_count);
 }
 
-bool PhotoMailerFrame::IsValidSettings() const
+bool PhotoMailerFrame::IsValidSettings()
 {
-	//TODO
+	if (GetSmtpServerCtrl()->GetValue().IsEmpty() ||
+	    GetSenderCtrl()->GetValue().IsEmpty() ||
+	    GetDirectoryPicker()->GetPath().IsEmpty())
+	{
+		wxMessageOutputDebug logger;
+		logger.Output(_("Missing required info"));
+		return false;
+	}
+
 	return true;
 }
 
@@ -513,22 +514,36 @@ bool PhotoMailerFrame::AddGridItem(const wxString& filename)
 		email = config->Read(filename);
 	}
 	
-	wxMutexLocker lock(m_photolist_mutex);
-
-	wxGrid* grid = GetPhotosGrid();
-	grid->AppendRows(1);
-	int current_row = grid->GetNumberRows()-1;
-
-	wxString cell_filename;
-	if (!GetRelativeFilename(filename, cell_filename))
+	int current_row = -1;
 	{
-		cell_filename = filename;
+		wxMutexLocker lock(m_photolist_mutex);
+
+		wxGrid* grid = GetPhotosGrid();
+		if (!grid->AppendRows(1))
+			return false;
+
+		current_row = grid->GetNumberRows()-1;
+
+		wxString cell_filename;
+		if (!GetRelativeFilename(filename, cell_filename))
+		{
+			cell_filename = filename;
+		}
+		grid->SetCellValue(current_row, FILENAME_COLUMN, cell_filename);
+		
+		if (!email.IsEmpty())
+		{
+			grid->SetCellValue(current_row, EMAIL_COLUMN, email);
+		}
 	}
-	grid->SetCellValue(current_row, FILENAME_COLUMN, cell_filename);
-	
-	if (!email.IsEmpty())
+
 	{
-		grid->SetCellValue(current_row, EMAIL_COLUMN, email);
+		wxMutexLocker lock(m_threadlist_mutex);
+
+		if (m_threadlist.empty())
+		{
+			SelectPhoto(current_row);
+		}
 	}
 
 	ThumbnailThread* thread = new ThumbnailThread(m_photolist_thread_semaphore, current_row, filename);
@@ -539,6 +554,30 @@ bool PhotoMailerFrame::AddGridItem(const wxString& filename)
 	}
 
 	return true;
+}
+
+void PhotoMailerFrame::SelectPhoto(int row)
+{
+	int grid_rows = -1;
+	{
+		wxMutexLocker lock(m_photolist_mutex);
+
+		wxGrid* grid = GetPhotosGrid();
+		grid_rows = grid->GetNumberRows();
+		if (0>row || row>=grid_rows)
+			return;
+
+		grid->SelectRow(row);
+		m_selected_row = row;
+		
+		wxMutexLocker photo_lock(m_selected_photo_mutex);
+		m_selected_photo_image.Destroy();
+	}
+
+	if (0<=m_selected_row && m_selected_row<grid_rows)
+	{
+		::wxGetApp().GetPreviewFrame()->ShowPhoto();
+	}
 }
 
 void PhotoMailerFrame::SendMail(int row)
@@ -639,6 +678,12 @@ bool PhotoMailerFrame::IsJpeg(const wxString& filename)
 	static const ssize_t JPEG_HEADER_LENGTH = 11;
 	wxUint8 jpegHeader[JPEG_HEADER_LENGTH];
 	ssize_t read = file.Read(&jpegHeader[0], JPEG_HEADER_LENGTH);
+	if (JPEG_HEADER_LENGTH > read)
+	{
+		::wxSleep(1);
+		ssize_t read2 = file.Read(&jpegHeader[read], JPEG_HEADER_LENGTH-read);
+		read += read2;
+	}
 	return (JPEG_HEADER_LENGTH==read &&
 	        0xFF==jpegHeader[0] &&
 	        0xD8==jpegHeader[1] &&
@@ -646,10 +691,12 @@ bool PhotoMailerFrame::IsJpeg(const wxString& filename)
 	        (0xE0==jpegHeader[3] || 0xE1==jpegHeader[3]));
 }
 
-const wxImage* PhotoMailerFrame::GetSelectedPhoto()
+bool PhotoMailerFrame::GetSelectedPhoto(wxImage& image)
 {
 	if (IsBeingDeleted())
-		return nullptr;
+		return false;
+
+	wxMutexLocker photo_lock(m_selected_photo_mutex);
 
 	if (!m_selected_photo_image.IsOk())
 	{
@@ -657,11 +704,12 @@ const wxImage* PhotoMailerFrame::GetSelectedPhoto()
 
 		wxString filename;
 		if (!GetRowFilename(m_selected_row, filename))
-			return nullptr;
+			return false;
 
 		LoadImage(filename, m_selected_photo_image);
 	}
-	return &m_selected_photo_image;
+	image = m_selected_photo_image.Copy();
+	return true;
 }
 
 bool PhotoMailerFrame::GetRowFilename(int row, wxString& filename)
