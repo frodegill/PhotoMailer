@@ -82,7 +82,11 @@ wxThread::ExitCode MailThread::Entry()
 		//Create message
 		vmime::messageBuilder mb;
 
-		mb.setExpeditor(vmime::mailbox(m_from.ToStdString()));
+		vmime::mailbox mailbox;
+		std::string mailbox_string = m_from.ToStdString();
+		mailbox.parse(mailbox_string, 0, mailbox_string.length());
+		mb.setExpeditor(mailbox);
+
 		mb.getRecipients().appendAddress(vmime::create<vmime::mailbox>(m_to.ToStdString()));
 		mb.setSubject(vmime::text(m_subject.ToStdString()));
 
