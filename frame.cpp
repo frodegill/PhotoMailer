@@ -275,7 +275,7 @@ void PhotoMailerFrame::OnMailProgress(wxThreadEvent& event)
 	if (payload)
 	{
 		wxMutexLocker lock(m_photolist_mutex);
-		
+
 		wxGrid* grid = GetPhotosGrid();
 		wxGridCellAttr* attr = grid->GetOrCreateCellAttr(payload->GetRow(), ACTION_COLUMN);
 		SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr?attr->GetClientObject():nullptr);
@@ -285,6 +285,8 @@ void PhotoMailerFrame::OnMailProgress(wxThreadEvent& event)
 			sendbutton_clientdata->SetProgress(payload->GetProgress());
 		}
 		delete payload;
+
+		grid->Refresh();
 	}
 }
 
