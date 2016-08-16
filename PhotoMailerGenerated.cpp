@@ -30,7 +30,7 @@ PhotoMailerFrameGenerated::PhotoMailerFrameGenerated(wxWindow* parent, wxWindowI
     
     mainBoxSizer->Add(smtpStaticBoxSizer, 0, wxALL|wxEXPAND, 5);
     
-    wxFlexGridSizer* smtpFlexGridSizer = new wxFlexGridSizer(3, 4, 0, 0);
+    wxFlexGridSizer* smtpFlexGridSizer = new wxFlexGridSizer(4, 4, 0, 0);
     smtpFlexGridSizer->SetFlexibleDirection( wxBOTH );
     smtpFlexGridSizer->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
     smtpFlexGridSizer->AddGrowableCol(1);
@@ -95,7 +95,7 @@ PhotoMailerFrameGenerated::PhotoMailerFrameGenerated(wxWindow* parent, wxWindowI
     
     m_subjectText = new wxStaticText(this, wxID_ANY, _("Subject"), wxDefaultPosition, wxSize(-1,-1), 0);
     
-    smtpFlexGridSizer->Add(m_subjectText, 0, wxALL, 5);
+    smtpFlexGridSizer->Add(m_subjectText, 0, wxALL|wxALIGN_RIGHT, 5);
     
     m_subjectCtrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxSize(-1,-1), 0);
     #if wxVERSION_NUMBER >= 3000
@@ -104,11 +104,33 @@ PhotoMailerFrameGenerated::PhotoMailerFrameGenerated(wxWindow* parent, wxWindowI
     
     smtpFlexGridSizer->Add(m_subjectCtrl, 1, wxALL|wxEXPAND, 5);
     
+    m_ftpPasswordText = new wxStaticText(this, wxID_ANY, _("'ftp' password"), wxDefaultPosition, wxSize(-1,-1), 0);
+    
+    smtpFlexGridSizer->Add(m_ftpPasswordText, 0, wxALL|wxALIGN_RIGHT, 5);
+    
+    m_ftpPasswordCtrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxSize(-1,-1), 0);
+    #if wxVERSION_NUMBER >= 3000
+    m_ftpPasswordCtrl->SetHint(wxT(""));
+    #endif
+    
+    smtpFlexGridSizer->Add(m_ftpPasswordCtrl, 0, wxALL, 5);
+    
+    m_ftpPortText = new wxStaticText(this, wxID_ANY, _("FTP port"), wxDefaultPosition, wxSize(-1,-1), 0);
+    
+    smtpFlexGridSizer->Add(m_ftpPortText, 0, wxALL|wxALIGN_RIGHT, 5);
+    
+    m_ftpPortCtrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxSize(-1,-1), 0);
+    #if wxVERSION_NUMBER >= 3000
+    m_ftpPortCtrl->SetHint(wxT(""));
+    #endif
+    
+    smtpFlexGridSizer->Add(m_ftpPortCtrl, 0, wxALL, 5);
+    
     wxBoxSizer* directorySizer = new wxBoxSizer(wxHORIZONTAL);
     
     mainBoxSizer->Add(directorySizer, 0, wxALL|wxEXPAND, 5);
     
-    m_directoryText = new wxStaticText(this, wxID_ANY, _("Directory"), wxDefaultPosition, wxSize(-1,-1), 0);
+    m_directoryText = new wxStaticText(this, wxID_ANY, _("FTP Directory"), wxDefaultPosition, wxSize(-1,-1), 0);
     
     directorySizer->Add(m_directoryText, 0, wxALL, 5);
     
@@ -116,9 +138,9 @@ PhotoMailerFrameGenerated::PhotoMailerFrameGenerated(wxWindow* parent, wxWindowI
     
     directorySizer->Add(m_directoryPicker, 1, wxALL, 5);
     
-    m_directoryListenButton = new wxButton(this, ID_LISTEN, _("Listen"), wxDefaultPosition, wxSize(-1,-1), 0);
+    m_ftpStartButton = new wxButton(this, ID_LISTEN, _("Start FTP server"), wxDefaultPosition, wxSize(-1,-1), 0);
     
-    directorySizer->Add(m_directoryListenButton, 0, wxALL, 5);
+    directorySizer->Add(m_ftpStartButton, 0, wxALL, 5);
     
     m_photosGrid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(-1,-1), wxWANTS_CHARS);
     m_photosGrid->CreateGrid(0, 0);

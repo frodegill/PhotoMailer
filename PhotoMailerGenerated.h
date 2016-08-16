@@ -47,9 +47,13 @@ protected:
     wxTextCtrl* m_senderCtrl;
     wxStaticText* m_subjectText;
     wxTextCtrl* m_subjectCtrl;
+    wxStaticText* m_ftpPasswordText;
+    wxTextCtrl* m_ftpPasswordCtrl;
+    wxStaticText* m_ftpPortText;
+    wxTextCtrl* m_ftpPortCtrl;
     wxStaticText* m_directoryText;
     wxDirPickerCtrl* m_directoryPicker;
-    wxButton* m_directoryListenButton;
+    wxButton* m_ftpStartButton;
     wxGrid* m_photosGrid;
 
 protected:
@@ -67,9 +71,13 @@ public:
     wxTextCtrl* GetSenderCtrl() { return m_senderCtrl; }
     wxStaticText* GetSubjectText() { return m_subjectText; }
     wxTextCtrl* GetSubjectCtrl() { return m_subjectCtrl; }
+    wxStaticText* GetFtpPasswordText() { return m_ftpPasswordText; }
+    wxTextCtrl* GetFtpPasswordCtrl() { return m_ftpPasswordCtrl; }
+    wxStaticText* GetFtpPortText() { return m_ftpPortText; }
+    wxTextCtrl* GetFtpPortCtrl() { return m_ftpPortCtrl; }
     wxStaticText* GetDirectoryText() { return m_directoryText; }
     wxDirPickerCtrl* GetDirectoryPicker() { return m_directoryPicker; }
-    wxButton* GetDirectoryListenButton() { return m_directoryListenButton; }
+    wxButton* GetFtpStartButton() { return m_ftpStartButton; }
     wxGrid* GetPhotosGrid() { return m_photosGrid; }
     PhotoMailerFrameGenerated(wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("PhotoMailerFrame"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize(-1,-1), long style = wxDEFAULT_FRAME_STYLE);
     virtual ~PhotoMailerFrameGenerated();

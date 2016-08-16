@@ -131,7 +131,7 @@ void PhotoMailerFrame::OnListen(wxCommandEvent& WXUNUSED(event))
 	{
 		delete m_filesystem_watcher;
 		m_filesystem_watcher = nullptr;
-		GetDirectoryListenButton()->SetLabel(_("Listen"));
+		GetFtpStartButton()->SetLabel(_("Listen"));
 	}
 	else
 	{
@@ -143,7 +143,7 @@ void PhotoMailerFrame::OnListen(wxCommandEvent& WXUNUSED(event))
 		m_filesystem_watcher->SetOwner(this);
 		m_filesystem_watcher->AddTree(GetDirectoryPicker()->GetDirName(), wxFSW_EVENT_CREATE|wxFSW_EVENT_DELETE|wxFSW_EVENT_RENAME);
 		RefreshPhotoList();
-		GetDirectoryListenButton()->SetLabel(_("Stop"));
+		GetFtpStartButton()->SetLabel(_("Stop"));
 	}
 }
 
