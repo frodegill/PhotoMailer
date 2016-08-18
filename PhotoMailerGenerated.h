@@ -51,6 +51,10 @@ protected:
     wxTextCtrl* m_ftpPasswordCtrl;
     wxStaticText* m_ftpPortText;
     wxTextCtrl* m_ftpPortCtrl;
+    wxStaticText* m_dataportFromText;
+    wxTextCtrl* m_dataportFromCtrl;
+    wxStaticText* m_dataportToText;
+    wxTextCtrl* m_dataportToCtrl;
     wxStaticText* m_directoryText;
     wxDirPickerCtrl* m_directoryPicker;
     wxButton* m_ftpStartButton;
@@ -75,6 +79,10 @@ public:
     wxTextCtrl* GetFtpPasswordCtrl() { return m_ftpPasswordCtrl; }
     wxStaticText* GetFtpPortText() { return m_ftpPortText; }
     wxTextCtrl* GetFtpPortCtrl() { return m_ftpPortCtrl; }
+    wxStaticText* GetDataportFromText() { return m_dataportFromText; }
+    wxTextCtrl* GetDataportFromCtrl() { return m_dataportFromCtrl; }
+    wxStaticText* GetDataportToText() { return m_dataportToText; }
+    wxTextCtrl* GetDataportToCtrl() { return m_dataportToCtrl; }
     wxStaticText* GetDirectoryText() { return m_directoryText; }
     wxDirPickerCtrl* GetDirectoryPicker() { return m_directoryPicker; }
     wxButton* GetFtpStartButton() { return m_ftpStartButton; }

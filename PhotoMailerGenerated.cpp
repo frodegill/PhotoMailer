@@ -30,7 +30,7 @@ PhotoMailerFrameGenerated::PhotoMailerFrameGenerated(wxWindow* parent, wxWindowI
     
     mainBoxSizer->Add(smtpStaticBoxSizer, 0, wxALL|wxEXPAND, 5);
     
-    wxFlexGridSizer* smtpFlexGridSizer = new wxFlexGridSizer(4, 4, 0, 0);
+    wxFlexGridSizer* smtpFlexGridSizer = new wxFlexGridSizer(5, 4, 0, 0);
     smtpFlexGridSizer->SetFlexibleDirection( wxBOTH );
     smtpFlexGridSizer->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
     smtpFlexGridSizer->AddGrowableCol(1);
@@ -125,6 +125,28 @@ PhotoMailerFrameGenerated::PhotoMailerFrameGenerated(wxWindow* parent, wxWindowI
     #endif
     
     smtpFlexGridSizer->Add(m_ftpPortCtrl, 0, wxALL, 5);
+    
+    m_dataportFromText = new wxStaticText(this, wxID_ANY, _("FTP DataPort From"), wxDefaultPosition, wxSize(-1,-1), 0);
+    
+    smtpFlexGridSizer->Add(m_dataportFromText, 0, wxALL|wxALIGN_RIGHT, 5);
+    
+    m_dataportFromCtrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxSize(-1,-1), 0);
+    #if wxVERSION_NUMBER >= 3000
+    m_dataportFromCtrl->SetHint(wxT(""));
+    #endif
+    
+    smtpFlexGridSizer->Add(m_dataportFromCtrl, 0, wxALL, 5);
+    
+    m_dataportToText = new wxStaticText(this, wxID_ANY, _("FTP DataPort To"), wxDefaultPosition, wxSize(-1,-1), 0);
+    
+    smtpFlexGridSizer->Add(m_dataportToText, 0, wxALL|wxALIGN_RIGHT, 5);
+    
+    m_dataportToCtrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxSize(-1,-1), 0);
+    #if wxVERSION_NUMBER >= 3000
+    m_dataportToCtrl->SetHint(wxT(""));
+    #endif
+    
+    smtpFlexGridSizer->Add(m_dataportToCtrl, 0, wxALL, 5);
     
     wxBoxSizer* directorySizer = new wxBoxSizer(wxHORIZONTAL);
     
