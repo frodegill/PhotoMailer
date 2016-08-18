@@ -6,6 +6,7 @@
 #endif
 
 #include <wx/confbase.h>
+#include <wx/msgdlg.h>
 #include <libexif/exif-data.h>
 
 #include "frame.h"
@@ -14,6 +15,16 @@
 #include "mail.h"
 #include "thumbnail.h"
 #include "sendbutton.h"
+
+
+void OnClientEventCallback(int event, CFtpServer::CClientEntry* /*client*/, void* /*arg*/)
+{
+	if (CFtpServer::CLIENT_UPLOAD != event)
+		return;
+	
+	int d = 0;
+	d++;
+}
 
 using namespace PhotoMailer;
 
@@ -38,6 +49,7 @@ wxIMPLEMENT_CLASS(PhotoMailerFrame, wxFrame);
 PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 : PhotoMailerFrameGenerated(nullptr),
   m_filesystem_watcher(nullptr),
+  m_ftp_server(nullptr),
   m_is_shutting_down(false),
   m_photolist_thread_semaphore(nullptr),
   m_pending_thumbnail_count(0),
@@ -75,6 +87,18 @@ PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 		if (config->Read("SMTP Subject", &str))
 			GetSubjectCtrl()->SetValue(str);
 
+		if (config->Read("FTP Password", &str))
+			GetFtpPasswordCtrl()->SetValue(str);
+
+		if (config->Read("FTP Port", &str))
+			GetFtpPortCtrl()->SetValue(str);
+
+		if (config->Read("FTP DataPort From", &str))
+			GetDataportFromCtrl()->SetValue(str);
+
+		if (config->Read("FTP DataPort To", &str))
+			GetDataportToCtrl()->SetValue(str);
+
 		if (config->Read("Directory", &str))
 			GetDirectoryPicker()->SetPath(str);
 	}
@@ -85,6 +109,7 @@ PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 PhotoMailerFrame::~PhotoMailerFrame()
 {
 	delete m_filesystem_watcher;
+	delete m_ftp_server;
 	delete m_photolist_thread_semaphore;
 
 	wxConfigBase* config = wxConfigBase::Get();
@@ -95,6 +120,10 @@ PhotoMailerFrame::~PhotoMailerFrame()
 		config->Write("SMTP Username", GetSmtpUsernameCtrl()->GetValue());
 		config->Write("SMTP Sender", GetSenderCtrl()->GetValue());
 		config->Write("SMTP Subject", GetSubjectCtrl()->GetValue());
+		config->Write("FTP Password", GetFtpPasswordCtrl()->GetValue());
+		config->Write("FTP Port", GetFtpPortCtrl()->GetValue());
+		config->Write("FTP DataPort From", GetDataportFromCtrl()->GetValue());
+		config->Write("FTP DataPort To", GetDataportToCtrl()->GetValue());
 		config->Write("Directory", GetDirectoryPicker()->GetPath());
 		config->Flush();
 	}
@@ -110,6 +139,8 @@ void PhotoMailerFrame::OnClose(wxCloseEvent& WXUNUSED(event))
 {
 	DestroyThreads();
 	WaitForDestroyedThreads();
+	
+	StopFtpServer();
 
 	PreviewFrame* preview_frame = ::wxGetApp().GetPreviewFrame();
 	if (preview_frame)
@@ -144,6 +175,15 @@ void PhotoMailerFrame::OnListen(wxCommandEvent& WXUNUSED(event))
 		m_filesystem_watcher->AddTree(GetDirectoryPicker()->GetDirName(), wxFSW_EVENT_CREATE|wxFSW_EVENT_DELETE|wxFSW_EVENT_RENAME);
 		RefreshPhotoList();
 		GetFtpStartButton()->SetLabel(_("Stop"));
+	}
+	
+	if (m_ftp_server)
+	{
+		StopFtpServer();
+	}
+	else
+	{
+		StartFtpServer();
 	}
 }
 
@@ -730,5 +770,72 @@ bool PhotoMailerFrame::GetRowFilename(int row, wxString& filename)
 		return false;
 
 	filename = GetDirectoryPicker()->GetPath() + "/" + cell_value;
+	return true;
+}
+
+bool PhotoMailerFrame::StartFtpServer()
+{
+	if (m_ftp_server)
+		return true;
+
+	m_ftp_server = new CFtpServer();
+	m_ftp_server->SetClientCallback(&OnClientEventCallback);
+	m_ftp_server->SetMaxPasswordTries(3);
+	m_ftp_server->SetNoLoginTimeout(60);
+	m_ftp_server->SetNoTransferTimeout(60);
+
+	unsigned long tmp;
+	unsigned short int dataport_from = 100;
+	unsigned short int dataport_to = 999;
+	if (GetDataportFromCtrl()->GetValue().ToULong(&tmp))
+		dataport_from = tmp;
+	
+	if (GetDataportToCtrl()->GetValue().ToULong(&tmp))
+		dataport_to = tmp;
+
+	if (dataport_to<dataport_from)
+	{
+		tmp = dataport_to;
+		dataport_to = dataport_from;
+		dataport_from = tmp;
+	}
+
+	if (!m_ftp_server->SetDataPortRange(dataport_from, dataport_to-dataport_from+1))
+		return false;
+
+	CFtpServer::CUserEntry* user = m_ftp_server->AddUser("ftp",
+	                                                     GetFtpPasswordCtrl()->GetValue().ToUTF8(),
+	                                                     GetDirectoryPicker()->GetPath().ToUTF8());
+	if (!user)
+		return false;
+
+	user->SetMaxNumberOfClient(0);
+	if (!user->SetPrivileges(CFtpServer::WRITEFILE|CFtpServer::LIST))
+		return false;
+
+	unsigned short int port = 21;
+	if (GetFtpPortCtrl()->GetValue().ToULong(&tmp))
+		port = tmp;
+
+	bool ret = (m_ftp_server->StartListening(INADDR_ANY, port) &&
+	            m_ftp_server->StartAccepting());
+
+	if (!ret && 1024>port)
+	{
+		wxMessageDialog dlg(this, _("Ports < 1024 requires root privileges"), _("FTP Server startup failed"));
+		dlg.ShowModal();
+	}
+
+	return ret;
+}
+
+bool PhotoMailerFrame::StopFtpServer()
+{
+	if (!m_ftp_server)
+		return true;
+
+	m_ftp_server->StopListening();
+	delete m_ftp_server;
+	m_ftp_server = nullptr;
 	return true;
 }

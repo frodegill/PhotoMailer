@@ -15,6 +15,8 @@
 
 #include "PhotoMailerGenerated.h"
 
+#include "ftp/CFtpServer.h"
+
 
 #define THUMBNAIL_COLUMN (0)
 #define FILENAME_COLUMN  (1)
@@ -25,6 +27,9 @@
 #define PREVIEW_EVENT       (wxID_HIGHEST-3)
 #define THUMBNAIL_EVENT     (wxID_HIGHEST-2)
 #define MAIL_PROGRESS_EVENT (wxID_HIGHEST-1)
+
+
+void OnClientEventCallback(int event, CFtpServer::CClientEntry* client, void* arg);
 
 
 namespace PhotoMailer
@@ -81,7 +86,12 @@ public:
 	bool GetRowFilename(int row, wxString& filename);
 
 private:
+	bool StartFtpServer();
+	bool StopFtpServer();
+	
+private:
 	wxFileSystemWatcher* m_filesystem_watcher;
+	CFtpServer* m_ftp_server;
 
 	wxMutex m_threadlist_mutex;
 	std::unordered_set<wxThread*> m_threadlist;
