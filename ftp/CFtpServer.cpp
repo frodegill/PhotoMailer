@@ -2196,7 +2196,10 @@ endofstore:
 	if( len < 0 || hFile == -1 ) {
 		pClient->SendReply( "550 Can't store file." );
 	} else
+	{
 		pClient->SendReply( "226 Transfer complete." );
+		pFtpServer->OnClientEventCb( CLIENT_UPLOADED, pClient, pTransfer->szPath );
+	}
 
 	pFtpServer->ClientListLock.Enter();
 	{

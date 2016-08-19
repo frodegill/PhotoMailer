@@ -2043,7 +2043,7 @@
 									"m_properties":	[{
 											"type":	"winid",
 											"m_label":	"ID:",
-											"m_winid":	"ID_LISTEN"
+											"m_winid":	"ID_FTPSERVER_BUTTON"
 										}, {
 											"type":	"string",
 											"m_label":	"Size:",

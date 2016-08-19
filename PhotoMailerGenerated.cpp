@@ -160,7 +160,7 @@ PhotoMailerFrameGenerated::PhotoMailerFrameGenerated(wxWindow* parent, wxWindowI
     
     directorySizer->Add(m_directoryPicker, 1, wxALL, 5);
     
-    m_ftpStartButton = new wxButton(this, ID_LISTEN, _("Start FTP server"), wxDefaultPosition, wxSize(-1,-1), 0);
+    m_ftpStartButton = new wxButton(this, ID_FTPSERVER_BUTTON, _("Start FTP server"), wxDefaultPosition, wxSize(-1,-1), 0);
     
     directorySizer->Add(m_ftpStartButton, 0, wxALL, 5);
     

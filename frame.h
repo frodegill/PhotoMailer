@@ -9,7 +9,6 @@
 #endif
 
 #include <wx/dir.h>
-#include <wx/fswatcher.h>
 
 #include <unordered_set>
 
@@ -24,6 +23,7 @@
 #define EMAIL_COLUMN     (3)
 #define ACTION_COLUMN    (4)
 
+#define FTP_UPLOAD_EVENT    (wxID_HIGHEST-4)
 #define PREVIEW_EVENT       (wxID_HIGHEST-3)
 #define THUMBNAIL_EVENT     (wxID_HIGHEST-2)
 #define MAIL_PROGRESS_EVENT (wxID_HIGHEST-1)
@@ -48,14 +48,14 @@ public:
 		
 	void OnClose(wxCloseEvent& event);
 	void OnQuit(wxCommandEvent& event);
-	void OnListen(wxCommandEvent& event);
-	void OnDirectoryEvent(wxFileSystemWatcherEvent& event);
+	void OnFtpServerButton(wxCommandEvent& event);
 	void OnGridSelectCell(wxGridEvent& event);
 	void OnGridCellLeftClick(wxGridEvent& event);
 	void OnGridMouseUp(wxEvent& event);
 	void OnGridCellChanged(wxGridEvent& event);
 	void OnMailProgress(wxThreadEvent& event);
 	void OnThumbnailEvent(wxThreadEvent& event);
+	void OnFtpUploadEvent(wxThreadEvent& event);
 
 public:
 	void RegisterThread(wxThread* thread);
@@ -90,7 +90,6 @@ private:
 	bool StopFtpServer();
 	
 private:
-	wxFileSystemWatcher* m_filesystem_watcher;
 	CFtpServer* m_ftp_server;
 
 	wxMutex m_threadlist_mutex;
@@ -112,6 +111,17 @@ private:
 	DECLARE_EVENT_TABLE()
 };
 
+
+class FtpUploadEventPayload
+{
+public:
+	FtpUploadEventPayload(const char* path) {m_path=wxString::FromUTF8(path);}
+
+	void GetPath(wxString& path) const {path=m_path;}
+
+private:
+	wxString m_path;
+};
 }
 
 #endif // _PHOTOMAILER_FRAME_H_

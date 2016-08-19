@@ -17,13 +17,19 @@
 #include "sendbutton.h"
 
 
-void OnClientEventCallback(int event, CFtpServer::CClientEntry* /*client*/, void* /*arg*/)
+void OnClientEventCallback(int event, CFtpServer::CClientEntry* /*client*/, void* arg)
 {
-	if (CFtpServer::CLIENT_UPLOAD != event)
+	if (CFtpServer::CLIENT_UPLOADED != event)
 		return;
 	
-	int d = 0;
-	d++;
+	wxWindow* event_handler = ::wxGetApp().GetMainFrame();
+	if (!event_handler || event_handler->IsBeingDeleted())
+		return;
+		
+	wxThreadEvent* threadEvent = new wxThreadEvent(wxEVT_THREAD, FTP_UPLOAD_EVENT);
+	PhotoMailer::FtpUploadEventPayload* payload = new PhotoMailer::FtpUploadEventPayload(static_cast<char*>(arg));
+	threadEvent->SetPayload<PhotoMailer::FtpUploadEventPayload*>(payload);
+	::wxQueueEvent(event_handler, threadEvent);
 }
 
 using namespace PhotoMailer;
@@ -35,20 +41,19 @@ using namespace PhotoMailer;
 BEGIN_EVENT_TABLE(PhotoMailerFrame, wxFrame)
 	EVT_CLOSE(PhotoMailerFrame::OnClose)
 	EVT_MENU(wxID_EXIT,	PhotoMailerFrame::OnQuit)
-  EVT_BUTTON(ID_LISTEN, PhotoMailerFrame::OnListen)
-	EVT_FSWATCHER(wxID_ANY, PhotoMailerFrame::OnDirectoryEvent)
+  EVT_BUTTON(ID_FTPSERVER_BUTTON, PhotoMailerFrame::OnFtpServerButton)
 	EVT_GRID_SELECT_CELL(PhotoMailerFrame::OnGridSelectCell)
 	EVT_GRID_CELL_LEFT_CLICK(PhotoMailerFrame::OnGridCellLeftClick)
 	EVT_GRID_CELL_CHANGED(PhotoMailerFrame::OnGridCellChanged)
 	EVT_THREAD(MAIL_PROGRESS_EVENT, PhotoMailerFrame::OnMailProgress)
 	EVT_THREAD(THUMBNAIL_EVENT, PhotoMailerFrame::OnThumbnailEvent)
+	EVT_THREAD(FTP_UPLOAD_EVENT, PhotoMailerFrame::OnFtpUploadEvent)
 END_EVENT_TABLE()
 
 wxIMPLEMENT_CLASS(PhotoMailerFrame, wxFrame);
 
 PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 : PhotoMailerFrameGenerated(nullptr),
-  m_filesystem_watcher(nullptr),
   m_ftp_server(nullptr),
   m_is_shutting_down(false),
   m_photolist_thread_semaphore(nullptr),
@@ -108,7 +113,6 @@ PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 
 PhotoMailerFrame::~PhotoMailerFrame()
 {
-	delete m_filesystem_watcher;
 	delete m_ftp_server;
 	delete m_photolist_thread_semaphore;
 
@@ -156,13 +160,12 @@ void PhotoMailerFrame::OnQuit(wxCommandEvent& WXUNUSED(event))
 	Close(true);
 }
 
-void PhotoMailerFrame::OnListen(wxCommandEvent& WXUNUSED(event))
+void PhotoMailerFrame::OnFtpServerButton(wxCommandEvent& WXUNUSED(event))
 {
-	if (m_filesystem_watcher)
+	if (m_ftp_server)
 	{
-		delete m_filesystem_watcher;
-		m_filesystem_watcher = nullptr;
-		GetFtpStartButton()->SetLabel(_("Listen"));
+		StopFtpServer();
+		GetFtpStartButton()->SetLabel(_("Start FTP Server"));
 	}
 	else
 	{
@@ -170,48 +173,11 @@ void PhotoMailerFrame::OnListen(wxCommandEvent& WXUNUSED(event))
 		{
 			return;
 		}
-		m_filesystem_watcher = new wxFileSystemWatcher();
-		m_filesystem_watcher->SetOwner(this);
-		m_filesystem_watcher->AddTree(GetDirectoryPicker()->GetDirName(), wxFSW_EVENT_CREATE|wxFSW_EVENT_DELETE|wxFSW_EVENT_RENAME);
-		RefreshPhotoList();
-		GetFtpStartButton()->SetLabel(_("Stop"));
-	}
-	
-	if (m_ftp_server)
-	{
-		StopFtpServer();
-	}
-	else
-	{
+
 		StartFtpServer();
-	}
-}
 
-void PhotoMailerFrame::OnDirectoryEvent(wxFileSystemWatcherEvent& event)
-{
-	int type = event.GetChangeType();
-	if (0!=(type&wxFSW_EVENT_DELETE) || 0!=(type&wxFSW_EVENT_RENAME))
-	{
-		wxString relative_filename;
-		if (GetRelativeFilename(event.GetPath().GetFullPath(), relative_filename))
-		{
-			wxMutexLocker lock(m_photolist_mutex);
-
-			wxGrid* grid = GetPhotosGrid();
-			int i = grid->GetNumberRows();
-			while (--i>=0)
-			{
-				if (EQUALS == relative_filename.Cmp(grid->GetCellValue(i, FILENAME_COLUMN)))
-				{
-					grid->DeleteRows(i, FILENAME_COLUMN, false);
-					break;
-				}
-			}
-		}
-	}
-	if (0!=(type&wxFSW_EVENT_CREATE) || 0!=(type&wxFSW_EVENT_RENAME))
-	{
-		AddGridItem((0!=(type&wxFSW_EVENT_RENAME) ? event.GetNewPath() : event.GetPath()).GetFullPath());
+		RefreshPhotoList();
+		GetFtpStartButton()->SetLabel(_("Stop FTP Server"));
 	}
 }
 
@@ -379,6 +345,17 @@ void PhotoMailerFrame::OnThumbnailEvent(wxThreadEvent& event)
 		grid->AutoSizeColumn(FILENAME_COLUMN);
 		grid->AutoSizeColumn(TIMESTAMP_COLUMN);
 		grid->AutoSizeColumn(EMAIL_COLUMN);
+	}
+}
+
+void PhotoMailerFrame::OnFtpUploadEvent(wxThreadEvent& event)
+{
+	FtpUploadEventPayload* payload = event.GetPayload<FtpUploadEventPayload*>();
+	if (payload)
+	{
+		wxString path;
+		payload->GetPath(path);
+		AddGridItem(path);
 	}
 }
 
@@ -779,7 +756,7 @@ bool PhotoMailerFrame::StartFtpServer()
 		return true;
 
 	m_ftp_server = new CFtpServer();
-	m_ftp_server->SetClientCallback(&OnClientEventCallback);
+	m_ftp_server->SetClientCallback(&::OnClientEventCallback);
 	m_ftp_server->SetMaxPasswordTries(3);
 	m_ftp_server->SetNoLoginTimeout(60);
 	m_ftp_server->SetNoTransferTimeout(60);
