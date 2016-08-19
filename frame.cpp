@@ -6,6 +6,7 @@
 #endif
 
 #include <wx/confbase.h>
+#include <wx/filename.h>
 #include <wx/msgdlg.h>
 #include <libexif/exif-data.h>
 
@@ -355,6 +356,7 @@ void PhotoMailerFrame::OnFtpUploadEvent(wxThreadEvent& event)
 	{
 		wxString path;
 		payload->GetPath(path);
+		delete payload;
 		AddGridItem(path);
 	}
 }
@@ -431,26 +433,11 @@ bool PhotoMailerFrame::IsValidSettings()
 
 bool PhotoMailerFrame::GetRelativeFilename(const wxString& absolute, wxString& relative)
 {
-	wxString listen_dir = GetDirectoryPicker()->GetPath();
-	size_t listen_dir_length = listen_dir.Len();
-	if (listen_dir_length >= absolute.Len())
+	wxFileName absolute_filename(absolute);
+	if (!absolute_filename.MakeRelativeTo(GetDirectoryPicker()->GetPath()))
 		return false;
 
-	wxString rest;
-	if (!absolute.StartsWith(listen_dir, &rest))
-		return false;
-
-	if (rest.StartsWith(_("./")))
-	{
-		relative = rest;
-	}
-	else if (rest.StartsWith(_("/")))
-	{
-		relative = _(".") + rest;
-	}
-	else {
-		relative = _("./") + rest;
-	}
+	relative = absolute_filename.GetFullPath();
 	return true;
 }
 
@@ -591,6 +578,7 @@ void PhotoMailerFrame::SelectPhoto(int row)
 		
 		wxMutexLocker photo_lock(m_selected_photo_mutex);
 		m_selected_photo_image.Destroy();
+		m_selected_photo_filename = wxEmptyString;
 	}
 
 	if (0<=m_selected_row && m_selected_row<grid_rows)
@@ -710,7 +698,7 @@ bool PhotoMailerFrame::IsJpeg(const wxString& filename)
 	        (0xE0==jpegHeader[3] || 0xE1==jpegHeader[3]));
 }
 
-bool PhotoMailerFrame::GetSelectedPhoto(wxImage& image)
+bool PhotoMailerFrame::GetSelectedPhoto(wxImage& image, wxString& filename)
 {
 	if (IsBeingDeleted())
 		return false;
@@ -721,13 +709,17 @@ bool PhotoMailerFrame::GetSelectedPhoto(wxImage& image)
 	{
 		wxMutexLocker lock(m_photolist_mutex);
 
-		wxString filename;
-		if (!GetRowFilename(m_selected_row, filename))
+		wxString absolute_filename;
+		if (!GetRowFilename(m_selected_row, absolute_filename) ||
+		    !GetRelativeFilename(absolute_filename, m_selected_photo_filename))
+		{
 			return false;
-
-		LoadImage(filename, m_selected_photo_image);
+		}
+		
+		LoadImage(absolute_filename, m_selected_photo_image);
 	}
 	image = m_selected_photo_image.Copy();
+	filename = m_selected_photo_filename;
 	return true;
 }
 
@@ -746,7 +738,8 @@ bool PhotoMailerFrame::GetRowFilename(int row, wxString& filename)
 	if (cell_value.IsEmpty())
 		return false;
 
-	filename = GetDirectoryPicker()->GetPath() + "/" + cell_value;
+	wxFileName filename_filename(GetDirectoryPicker()->GetPath(), cell_value);
+	filename = filename_filename.GetFullPath();
 	return true;
 }
 

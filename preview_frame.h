@@ -61,10 +61,12 @@ private:
 class PreviewEventPayload
 {
 public:
-	PreviewEventPayload(const wxImage& image);
+	PreviewEventPayload(const wxImage& image, const wxString& filename);
 	const wxBitmap* GetBitmap() const {return &m_bitmap;}
+	void GetFilename(wxString& filename) {filename=m_filename;}
 private:
 	wxBitmap m_bitmap;
+	wxString m_filename;
 };
 
 }

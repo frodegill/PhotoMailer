@@ -82,7 +82,7 @@ public:
 
 public:
 	wxSemaphore* GetPhotolistSemaphore() const {return m_photolist_thread_semaphore;}
-	bool GetSelectedPhoto(wxImage& image);
+	bool GetSelectedPhoto(wxImage& image, wxString& filename);
 	bool GetRowFilename(int row, wxString& filename);
 
 private:
@@ -104,6 +104,7 @@ private:
 
 	wxMutex m_selected_photo_mutex;
 	wxImage m_selected_photo_image;
+	wxString m_selected_photo_filename;
 
 	int     m_pressed_send_button_row;
 

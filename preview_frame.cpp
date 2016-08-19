@@ -76,7 +76,10 @@ void PreviewFrame::OnPreviewEvent(wxThreadEvent& event)
 	{
 		const wxBitmap* bitmap = payload->GetBitmap();
 		m_selected_photo_bitmap = bitmap->GetSubBitmap(wxRect(0, 0, bitmap->GetWidth(), bitmap->GetHeight()));
+		wxString filename;
+		payload->GetFilename(filename);
 		delete payload;
+		SetTitle(_("Preview - ")+filename);
 		Refresh();
 	}
 }
@@ -110,7 +113,8 @@ wxThread::ExitCode PreviewThread::Entry()
 		return CleanupAndExit(-1);
 
 	wxImage image;
-	if (!::wxGetApp().GetMainFrame()->GetSelectedPhoto(image) || !image.IsOk())
+	wxString filename;
+	if (!::wxGetApp().GetMainFrame()->GetSelectedPhoto(image, filename) || !image.IsOk())
 		return CleanupAndExit(-1);
 
 	int dc_width = m_size.GetWidth();
@@ -134,7 +138,7 @@ wxThread::ExitCode PreviewThread::Entry()
 	}
 
 	wxThreadEvent* threadEvent = new wxThreadEvent(wxEVT_THREAD, PREVIEW_EVENT);
-	PreviewEventPayload* payload = new PreviewEventPayload(image.Scale(image_width, image_height, wxIMAGE_QUALITY_NORMAL));
+	PreviewEventPayload* payload = new PreviewEventPayload(image.Scale(image_width, image_height, wxIMAGE_QUALITY_NORMAL), filename);
 	threadEvent->SetPayload<PreviewEventPayload*>(payload);
 	::wxQueueEvent(m_event_handler, threadEvent);
 
@@ -147,7 +151,8 @@ wxThread::ExitCode PreviewThread::CleanupAndExit(int exit_code)
 }
 
 
-PreviewEventPayload::PreviewEventPayload(const wxImage& image)
+PreviewEventPayload::PreviewEventPayload(const wxImage& image, const wxString& filename)
 {
 	m_bitmap = wxBitmap(image);
+	m_filename = filename;
 }
