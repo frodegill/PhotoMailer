@@ -58,7 +58,7 @@ bool PhotoMailerApp::OnInit()
 	wxConfigBase::Set(config);
 
 	//Initialize main frame
-	m_main_frame = new PhotoMailerFrame(_("PhotoMailer"));
+	m_main_frame = new PhotoMailerFrame(_("PhotoMailer v1.0"));
 	if (!m_main_frame)
 	{
 		wxASSERT_MSG(false, _("wxMailto_Frame is NULL"));
