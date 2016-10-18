@@ -28,6 +28,9 @@
 #include "CFtpServer.h"
 #include "CFtpServerGlobal.h"
 
+#include <wx/msgout.h>
+#include <wx/string.h>
+
 /**
  * Portable function that sleeps for at least the specified interval.
  *
@@ -842,7 +845,7 @@ bool CFtpServer::CClientEntry::CheckPrivileges( unsigned char ucPriv ) const
 					if( pClient->pUser && pClient->pUser->bIsEnabled && !*pClient->pUser->szPassword ) {
 						pClient->LogIn();
 					} else
-						pClient->SendReply( "331 Password required for this user." );
+						pClient->SendReply( "331 Please specify the password." );
 				}
 				pFtpServer->UserListLock.Leave();
 			}
@@ -852,7 +855,7 @@ bool CFtpServer::CClientEntry::CheckPrivileges( unsigned char ucPriv ) const
 
 			++pClient->nPasswordTries;
 			if( pClient->bIsLogged == true ) {
-				pClient->SendReply( "230 User Logged In." );
+				pClient->SendReply( "230 Login successful." );
 			} else {
 				if( pFtpServer->GetCheckPassDelay() ) sleep_msec( pFtpServer->GetCheckPassDelay() );
 				pFtpServer->UserListLock.Enter();
@@ -992,7 +995,7 @@ bool CFtpServer::CClientEntry::CheckPrivileges( unsigned char ucPriv ) const
 					pClient->SendReply( "200 ASCII transfer mode active." );
 				} else if( pszCmdArg[0] == 'I' ) {
 					pClient->eDataType = BINARY;
-					pClient->SendReply( "200 Binary transfer mode active." );
+					pClient->SendReply( "200 Switching to Binary mode." );
 				} else 
 					pClient->SendReply( "550 Error - unknown binary mode." );
 			} else
@@ -1122,6 +1125,7 @@ bool CFtpServer::CClientEntry::CheckPrivileges( unsigned char ucPriv ) const
 				pClient->SendReply( "550 Permission denied." );
 				continue;
 			}
+
 			if( pClient->eStatus != WAITING ) {
 				pClient->SendReply( "425 You're already connected." );
 				continue;
@@ -1441,7 +1445,7 @@ bool CFtpServer::CClientEntry::CheckPrivileges( unsigned char ucPriv ) const
 					#endif
 						pClient->SendReply( "550 MKD Error Creating DIR." );
 					} else
-						pClient->SendReply( "250 MKD command successful." );
+						pClient->SendReply( "257 MKD command successful." );
 				} else
 					pClient->SendReply( "550 File Already Exists." );
 			} else
@@ -1516,7 +1520,7 @@ void CFtpServer::CClientEntry::LogIn()
 {
 	bIsLogged = true;
 	++pUser->uiNumberOfClient;
-	SendReply( "230 User Logged In." );
+	SendReply( "230 Login successful." );
 	ResetTimeout();
 }
 
@@ -1553,6 +1557,10 @@ bool CFtpServer::CClientEntry::SendReply( const char *pszReply, bool bNoNeedToAl
 		pFtpServer->OnClientEventCb( SEND_REPLY, this, (void*)pszReply );
 		pszBuffer[ nLen  ] = '\r';
 		pszBuffer[ nLen + 1 ] = '\n';
+
+		::wxMessageOutputDebug logger;
+		logger.Printf("S1: %s", wxString(pszBuffer, nLen+2));
+
 		if( send( CtrlSock, pszBuffer, nLen + 2, MSG_NOSIGNAL ) > 0 ) {
 			bReturn = true;
 		} else
@@ -1682,6 +1690,9 @@ bool CFtpServer::CClientEntry::ReceiveLine()
 
 int CFtpServer::CClientEntry::ParseLine()
 {
+	::wxMessageOutputDebug logger;
+	logger.Printf("C: %s", sCmdBuffer);
+	
 	// Separate the Cmd and the Arguments
 	char *pszSpace = strchr( sCmdBuffer, ' ' );
 	if( pszSpace ) { 
@@ -2289,6 +2300,9 @@ endofstore:
 				} else
 #endif
 				{
+					::wxMessageOutputDebug logger;
+					logger.Printf("S2: %s", wxString(pBuffer, BlockSize));
+
 					len = send( pClient->DataSock, pBuffer, BlockSize, MSG_NOSIGNAL );
 					if( len <= 0 ) break;
 				}
@@ -2410,11 +2424,23 @@ bool CFtpServer::CClientEntry::AddToListBuffer( DataTransfer_t *pTransfer,
 #endif
 	{
 		if( pszListLine ) {
-			int nBufferAvailable = uiBufferSize - *nBufferPos;
+			int nBufferAvailable = uiBufferSize-2 - *nBufferPos;
 			int iCanCopyLen = (nLineLen <= nBufferAvailable) ? nLineLen : nBufferAvailable;
 			memcpy( (pBuffer + *nBufferPos), pszListLine, iCanCopyLen );
 			*nBufferPos += iCanCopyLen;
+			
+			if (*nBufferPos<2 || !(pBuffer[*nBufferPos-2]=='\r' && pBuffer[*nBufferPos-1]=='\n'))
+			{
+				pBuffer[*nBufferPos] = '\r';
+				pBuffer[*nBufferPos+1] = '\n';
+				*nBufferPos += 2;
+			}
+
 			if( *nBufferPos == uiBufferSize ) {
+				
+				::wxMessageOutputDebug logger;
+				logger.Printf("S3: %s", wxString(pBuffer, uiBufferSize));
+				
 				if( send( pTransfer->SockList, pBuffer, uiBufferSize, MSG_NOSIGNAL ) <= 0 )
 					return false;
 				*nBufferPos = 0;
@@ -2425,7 +2451,12 @@ bool CFtpServer::CClientEntry::AddToListBuffer( DataTransfer_t *pTransfer,
 			}
 		} else { // Flush the buffer.
 			if( nBufferPos )
+			{
+				::wxMessageOutputDebug logger;
+				logger.Printf("S4: %s", wxString(pBuffer, *nBufferPos));
+
 				send( pTransfer->SockList, pBuffer, *nBufferPos, MSG_NOSIGNAL );
+			}
 		}
 	}
 	return true;
@@ -2454,7 +2485,12 @@ bool CFtpServer::CClientEntry::AddToListBuffer( DataTransfer_t *pTransfer,
 				st->st_mtime, (( pszName && pszName[ 1 ] ) ? pszName + 1 : "."), pTransfer->opt_F );
 
 			if( iFileLineLen > 0 )
+			{
+				::wxMessageOutputDebug logger;
+				logger.Printf("S5: %s", wxString(psFileLine, iFileLineLen));
+
 				send( pTransfer->SockList, psFileLine, iFileLineLen, MSG_NOSIGNAL );
+			}
 
 		} else {
 
