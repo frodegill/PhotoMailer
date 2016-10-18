@@ -780,7 +780,7 @@ bool PhotoMailerFrame::StartFtpServer()
 		return false;
 
 	user->SetMaxNumberOfClient(0);
-	if (!user->SetPrivileges(CFtpServer::WRITEFILE|CFtpServer::LIST))
+	if (!user->SetPrivileges(CFtpServer::READFILE|CFtpServer::WRITEFILE|CFtpServer::DELETEFILE|CFtpServer::LIST|CFtpServer::CREATEDIR|CFtpServer::DELETEDIR))
 		return false;
 
 	unsigned short int port = 21;
