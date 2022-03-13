@@ -1128,7 +1128,6 @@ class CFtpServer::CEnumFileInfo
 		#else
 			DIR *dp;
 			struct stat st;
-			struct dirent dir_entry;
 		#endif
 
 		char *pszName;
