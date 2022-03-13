@@ -624,23 +624,22 @@ bool PhotoMailerFrame::LoadImage(const wxString& filename, wxImage& image, wxDat
 	if (filename.IsEmpty())
 		return false;
 
-	if (!image.LoadFile(filename, wxBITMAP_TYPE_JPEG) || !image.IsOk())
+	unsigned char orientation;
+	if (!image.LoadFile(filename, wxBITMAP_TYPE_JPEG) ||
+      !image.IsOk() ||
+      !GetExifInfo(filename, &orientation, timestamp))
 	{
 		image.Destroy();
 		return false;
 	}
 
-	unsigned char orientation;
-	if (GetExifInfo(filename, &orientation, timestamp))
-	{
-		switch(orientation)
-		{
-			case 3: image = image.Rotate180(); break;
-			case 6: image = image.Rotate90(true); break;
-			case 8: image = image.Rotate90(false); break;
-			default: break;
-		};
-	}
+  switch(orientation)
+  {
+    case 3: image = image.Rotate180(); break;
+    case 6: image = image.Rotate90(true); break;
+    case 8: image = image.Rotate90(false); break;
+    default: break;
+  };
 	return true;
 }
 
@@ -661,15 +660,13 @@ bool PhotoMailerFrame::GetExifInfo(const wxString& filename, unsigned char* orie
 
 	if (timestamp)
 	{
-		ExifEntry* entry = exif_content_get_entry(ed->ifd[EXIF_IFD_0], EXIF_TAG_DATE_TIME);
-		if (entry)
-		{
-			wxString::const_iterator end;
-			if (!timestamp->ParseFormat(wxString::FromUTF8(reinterpret_cast<const char*>(entry->data)), _("%Y:%m:%d %H:%M:%S"), &end))
-			{
-				timestamp->SetToCurrent();
-			}
-		}
+    ExifEntry* entry = exif_content_get_entry(ed->ifd[EXIF_IFD_0], EXIF_TAG_DATE_TIME);
+    wxString::const_iterator end;
+		if (!entry ||
+        !timestamp->ParseFormat(wxString::FromUTF8(reinterpret_cast<const char*>(entry->data)), _("%Y:%m:%d %H:%M:%S"), &end))
+    {
+      timestamp->SetToCurrent();
+    }
 	}
 
 	exif_data_unref(ed);
