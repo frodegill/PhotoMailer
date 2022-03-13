@@ -17,11 +17,34 @@
 #include "mail.h"
 
 
-#define CA_CERT_FILE "/etc/ssl/certs/ca-certificates.crt"
+#undef ENABLE_TRACE
+
+
+#define CA_CERT_FILE            "/etc/ssl/certs/ca-certificates.crt"
+#define AMAZON_SES_CA_CERT_FILE "ca-certificates/SFSRootCAG2.crt"
 
 
 using namespace PhotoMailer;
 
+#ifdef ENABLE_TRACE
+class myTracer : public vmime::net::tracer
+{
+public:
+  myTracer(const vmime::string& proto, const int connectionId) : m_proto(proto), m_connectionId(connectionId) {}
+  void traceSend(const vmime::string& line) {std::cout << " [ " << m_proto << " : " << m_connectionId << " ] C: " << line << std::endl;}
+  void traceReceive(const vmime::string& line) {std::cout << " [ " << m_proto << " : " << m_connectionId << " ] S: " << line << std::endl;}
+private :
+  const vmime::string m_proto;
+  const int m_connectionId;
+};
+
+class myTracerFactory : public vmime::net::tracerFactory
+{
+public:
+  virtual std::shared_ptr<vmime::net::tracer> create(const std::shared_ptr<vmime::net::service>& serv, const int connectionId) {return std::make_shared<myTracer>(serv->getProtocolName(), connectionId);}
+	//virtual shared_ptr <tracer> create(shared_ptr <service> serv, const int connectionId) = 0;
+};
+#endif //ENABLE_TRACE
 
 MailThread::MailThread(int row, const wxString& smtp_server, const wxString& smtp_port,
 	           const wxString& smtp_username, const wxString& smtp_password,
@@ -51,32 +74,36 @@ wxThread::ExitCode MailThread::Entry()
 {
 	wxMessageOutputStderr logger;
 	try {
-		vmime::ref<vmime::security::cert::defaultCertificateVerifier> certificate_verifier = vmime::create<vmime::security::cert::defaultCertificateVerifier>();
-		vmime::ref<vmime::security::cert::X509Certificate> ca_certs = LoadCACertificateFile(CA_CERT_FILE);
-		if (ca_certs)
-		{
-			std::vector<vmime::ref<vmime::security::cert::X509Certificate>> root_ca_list;
-			root_ca_list.push_back(ca_certs);
-			certificate_verifier->setX509RootCAs(root_ca_list);
-		}
+		vmime::shared_ptr<vmime::security::cert::defaultCertificateVerifier> certificate_verifier = vmime::make_shared<vmime::security::cert::defaultCertificateVerifier>();
+
+    std::vector<vmime::shared_ptr<vmime::security::cert::X509Certificate>> root_ca_list;
+    root_ca_list.push_back(LoadCACertificateFile(CA_CERT_FILE));
+    root_ca_list.push_back(LoadCACertificateFile(AMAZON_SES_CA_CERT_FILE));
+    certificate_verifier->setX509RootCAs(root_ca_list);
 
 		//Set up SMTP transport
 		std::string smtp_url_string;
 		GetSMTPUrl(smtp_url_string);
 		vmime::platform::setHandler<vmime::platforms::posix::posixHandler>();
-		vmime::ref<vmime::net::session> session = vmime::create<vmime::net::session>();
-		vmime::ref<vmime::net::transport> transport = session->getTransport(vmime::utility::url(smtp_url_string));
+		vmime::shared_ptr<vmime::net::session> session = vmime::net::session::create();
+		vmime::shared_ptr<vmime::net::transport> transport = session->getTransport(vmime::utility::url(smtp_url_string));
 		transport->setCertificateVerifier(certificate_verifier);
+    transport->setProperty("connection.tls", true);
+    transport->setProperty("connection.tls.required", true);
 
 		//Set up SMTP authentication
 		if (!m_smtp_username.IsEmpty())
 		{
-			transport->setProperty("options.need−authentication", true);
+			transport->setProperty("options.need-authentication", true);
 			transport->setProperty("auth.username", m_smtp_username.ToStdString());
 			transport->setProperty("auth.password", m_smtp_password.ToStdString());
 		}
 
-		//Connect
+#ifdef ENABLE_TRACE
+    transport->setTracerFactory(vmime::make_shared<myTracerFactory>());
+#endif
+
+    //Connect
 		transport->connect();
 
 		//Create message
@@ -87,7 +114,7 @@ wxThread::ExitCode MailThread::Entry()
 		mailbox.parse(mailbox_string, 0, mailbox_string.length());
 		mb.setExpeditor(mailbox);
 
-		mb.getRecipients().appendAddress(vmime::create<vmime::mailbox>(m_to.ToStdString()));
+		mb.getRecipients().appendAddress(vmime::make_shared<vmime::mailbox>(m_to.ToStdString()));
 		mb.setSubject(vmime::text(m_subject.ToStdString()));
 
 		//Attachment
@@ -97,8 +124,8 @@ wxThread::ExitCode MailThread::Entry()
 		}
 		else
 		{
-			vmime::ref<vmime::fileAttachment> attachment =
-				vmime::create<vmime::fileAttachment>(m_filename.ToStdString(), vmime::mediaType("image/jpeg"));
+			vmime::shared_ptr<vmime::fileAttachment> attachment =
+				vmime::make_shared<vmime::fileAttachment>(m_filename.ToStdString(), vmime::mediaType("image/jpeg"));
 			
 			mb.appendAttachment(attachment);
 
@@ -132,16 +159,11 @@ wxThread::ExitCode MailThread::Entry()
 	return static_cast<wxThread::ExitCode>(0);
 }
 
-bool MailThread::cancel() const
-{
-	return false;
-}
-
-void MailThread::start(const int WXUNUSED(predictedTotal))
+void MailThread::start(const size_t WXUNUSED(predictedTotal))
 {
 }
 
-void MailThread::progress(const int current, const int currentTotal)
+void MailThread::progress(const size_t current, const size_t currentTotal)
 {
 	if (0 != currentTotal)
 	{
@@ -153,11 +175,11 @@ void MailThread::progress(const int current, const int currentTotal)
 	}
 }
 
-void MailThread::stop(const int WXUNUSED(total))
+void MailThread::stop(const size_t WXUNUSED(total))
 {
 }
 
-vmime::ref<vmime::security::cert::X509Certificate> MailThread::LoadCACertificateFile(const std::string& filename)
+vmime::shared_ptr<vmime::security::cert::X509Certificate> MailThread::LoadCACertificateFile(const std::string& filename)
 {
 	std::ifstream cert_file;
 	cert_file.open(filename, std::ios::in|std::ios::binary);
@@ -170,7 +192,7 @@ vmime::ref<vmime::security::cert::X509Certificate> MailThread::LoadCACertificate
 
 void MailThread::GetSMTPUrl(std::string& url)
 {
-	url = (_("smtp://")+m_smtp_server+_(":")+m_smtp_port).ToStdString();
+	url = (_("smtps://")+m_smtp_server+_(":")+m_smtp_port).ToStdString();
 }
 
 

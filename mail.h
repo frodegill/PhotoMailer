@@ -32,13 +32,12 @@ public: //wxThread
 	virtual wxThread::ExitCode Entry() wxOVERRIDE;
 
 public: //vmime::utility::progressListener
-	virtual bool cancel() const;
-	virtual void start(const int predictedTotal);
-	virtual void progress(const int current, const int currentTotal);
-	virtual void stop(const int total);
+	virtual void start(const size_t predictedTotal) override;
+	virtual void progress(const size_t current, const size_t currentTotal) override;
+	virtual void stop(const size_t total) override;
 
 private:
-	vmime::ref<vmime::security::cert::X509Certificate> LoadCACertificateFile(const std::string& filename);
+	vmime::shared_ptr<vmime::security::cert::X509Certificate> LoadCACertificateFile(const std::string& filename);
 	void GetSMTPUrl(std::string& url);
 
 private:
