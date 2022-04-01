@@ -1443,7 +1443,7 @@ bool CFtpServer::CClientEntry::CheckPrivileges( unsigned char ucPriv ) const
 					#endif
 						pClient->SendReply( "550 MKD Error Creating DIR." );
 					} else
-						pClient->SendReply( "250 MKD command successful." );
+						pClient->SendReply( "257 MKD command successful." );
 				} else
 					pClient->SendReply( "550 File Already Exists." );
 			} else
