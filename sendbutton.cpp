@@ -49,8 +49,8 @@ void SendButtonRenderer::Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, cons
 	wxGridCellRenderer::Draw(grid, attr, dc, rect, row, col, isSelected);
 
 #ifndef CLIENTDATA_FIX
-	wxGridCellAttr* attr2 = grid.GetOrCreateCellAttr(row, col);
-	SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr2?attr2->GetClientObject():nullptr);
+	wxGridCellAttrPtr attr_ptr = grid.GetOrCreateCellAttrPtr(row, col);
+	SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr_ptr.get()?attr_ptr->GetClientObject():nullptr);
 #else
 	SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr.GetClientObject());
 #endif
@@ -100,9 +100,6 @@ void SendButtonRenderer::Draw(wxGrid& grid, wxGridCellAttr& attr, wxDC& dc, cons
 			}
 		}
 	}
-#ifndef CLIENTDATA_FIX
-	attr2->DecRef();
-#endif
 }
 
 wxGridCellRenderer* SendButtonRenderer::Clone() const
