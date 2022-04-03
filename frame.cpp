@@ -57,10 +57,11 @@ PhotoMailerFrame::PhotoMailerFrame(const wxString& title)
 : PhotoMailerFrameGenerated(nullptr),
   m_ftp_server(nullptr),
   m_is_shutting_down(false),
+  m_photolist_id(0),
   m_photolist_thread_semaphore(nullptr),
   m_pending_thumbnail_count(0),
-  m_selected_row(-1),
-  m_pressed_send_button_row(-1)
+  m_selected_row_id(NO_ID),
+  m_pressed_send_button_row_id(NO_ID)
 {
 	int cpu_count = wxThread::GetCPUCount();
 	m_photolist_thread_semaphore = new wxSemaphore(cpu_count, cpu_count);
@@ -192,11 +193,11 @@ void PhotoMailerFrame::OnGridSelectCell(wxGridEvent& event)
 	if (0 >= grid->GetNumberRows()) //The initial grid->AppendCols will end up calling this (it selects cell(0,0)
 		return;
 
-	int event_row = event.GetRow();
-	if (m_selected_row == event_row)
+	RowId event_row_id = GetRowId(event.GetRow());
+	if (m_selected_row_id == event_row_id)
 		return;
 
-	SelectPhoto(event_row);
+	SelectPhoto(event_row_id);
 }
 
 void PhotoMailerFrame::OnGridCellLeftClick(wxGridEvent& event)
@@ -205,47 +206,55 @@ void PhotoMailerFrame::OnGridCellLeftClick(wxGridEvent& event)
 
 	wxMutexLocker lock(m_photolist_mutex);
 
-	wxGrid* grid = GetPhotosGrid();
-	wxGridCellAttrPtr attr_ptr;
-	if (-1 != m_pressed_send_button_row)
-	{
-		attr_ptr = grid->GetOrCreateCellAttrPtr(m_pressed_send_button_row, ACTION_COLUMN);
-		SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr_ptr.get()?attr_ptr->GetClientObject():nullptr);
-		if (sendbutton_clientdata)
-		{
-			sendbutton_clientdata->SetIsPressed(false);
-		}
-	}
+  wxGrid* grid = GetPhotosGrid();
+
+  wxGridCellAttrPtr attr_ptr;
+  int pressed_send_button_row = GetRowWithId(m_pressed_send_button_row_id);
+  if (NO_ROW != pressed_send_button_row)
+  {
+    attr_ptr = grid->GetOrCreateCellAttrPtr(pressed_send_button_row, ACTION_COLUMN);
+    if (attr_ptr.get() && attr_ptr->GetClientObject())
+    {
+      static_cast<SendButtonClientData*>(attr_ptr->GetClientObject())->SetIsPressed(false);
+    }
+  }
 
 	if (ACTION_COLUMN == event.GetCol())
 	{
-		m_pressed_send_button_row = event.GetRow();
-		attr_ptr = grid->GetOrCreateCellAttrPtr(m_pressed_send_button_row, ACTION_COLUMN);
-		SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr_ptr.get()?attr_ptr->GetClientObject():nullptr);
-		if (sendbutton_clientdata)
-		{
-			sendbutton_clientdata->SetIsPressed(true);
+		pressed_send_button_row = event.GetRow();
+		m_pressed_send_button_row_id = GetRowId(pressed_send_button_row);
+		attr_ptr = grid->GetOrCreateCellAttrPtr(pressed_send_button_row, ACTION_COLUMN);
+    if (attr_ptr.get() && attr_ptr->GetClientObject())
+    {
+      static_cast<SendButtonClientData*>(attr_ptr->GetClientObject())->SetIsPressed(true);
 			grid->ForceRefresh();
 		}
 
-		SendMail(m_pressed_send_button_row);
+		SendMail(m_pressed_send_button_row_id);
 	}
 }
 
 void PhotoMailerFrame::OnGridMouseUp(wxEvent& WXUNUSED(event))
 {
-	if (-1 != m_pressed_send_button_row)
+	if (NO_ID != m_pressed_send_button_row_id)
 	{
 		wxMutexLocker lock(m_photolist_mutex);
 
 		wxGrid* grid = GetPhotosGrid();
-		wxGridCellAttrPtr attr_ptr = grid->GetOrCreateCellAttrPtr(m_pressed_send_button_row, ACTION_COLUMN);
-		SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr_ptr.get()?attr_ptr->GetClientObject():nullptr);
-		if (sendbutton_clientdata && sendbutton_clientdata->GetIsPressed())
-		{
-			sendbutton_clientdata->SetIsPressed(false);
-			grid->ForceRefresh();
-		}
+    int pressed_send_button_row = GetRowWithId(m_pressed_send_button_row_id);
+    if (NO_ROW != pressed_send_button_row)
+    {
+      wxGridCellAttrPtr attr_ptr = grid->GetOrCreateCellAttrPtr(pressed_send_button_row, ACTION_COLUMN);
+      if (attr_ptr.get() && attr_ptr->GetClientObject())
+      {
+        SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr_ptr->GetClientObject());
+        if (sendbutton_clientdata->GetIsPressed())
+        {
+          sendbutton_clientdata->SetIsPressed(false);
+          grid->ForceRefresh();
+        }
+      }
+    }
 	}
 }
 
@@ -256,21 +265,25 @@ void PhotoMailerFrame::OnGridCellChanged(wxGridEvent& event)
 	if (EMAIL_COLUMN != event.GetCol())
 		return;
 
-	int row = event.GetRow();
-	wxString filename;
-	if (!GetRowFilename(row, filename) || filename.IsEmpty())
-		return;
+  int row = event.GetRow();
+	RowId row_id = GetRowId(row);
+  if (NO_ID != row_id)
+  {
+    wxString filename;
+    if (!GetFilename(row_id, filename) || filename.IsEmpty())
+      return;
 
-	wxConfigBase* config = wxConfigBase::Get();
-	if (!config)
-		return;
+    wxConfigBase* config = wxConfigBase::Get();
+    if (!config)
+      return;
 
-	wxMutexLocker lock(m_photolist_mutex);
+    wxMutexLocker lock(m_photolist_mutex);
 
-	wxGrid* grid = GetPhotosGrid();
-	wxString email = grid->GetCellValue(row, EMAIL_COLUMN);
-	config->Write(filename, email);
-	config->Flush();
+    wxGrid* grid = GetPhotosGrid();
+    wxString email = grid->GetCellValue(row, EMAIL_COLUMN);
+    config->Write(filename, email);
+    config->Flush();
+  }
 }
 
 void PhotoMailerFrame::OnMailProgress(wxThreadEvent& event)
@@ -281,13 +294,20 @@ void PhotoMailerFrame::OnMailProgress(wxThreadEvent& event)
 		wxMutexLocker lock(m_photolist_mutex);
 
 		wxGrid* grid = GetPhotosGrid();
-		wxGridCellAttr* attr = grid->GetOrCreateCellAttr(payload->GetRow(), ACTION_COLUMN);
-		SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr?attr->GetClientObject():nullptr);
-		if (sendbutton_clientdata && !sendbutton_clientdata->HasFailed())
-		{
-			sendbutton_clientdata->SetHasFailed(payload->HasFailed());
-			sendbutton_clientdata->SetProgress(payload->GetProgress());
-		}
+    int row = GetRowWithId(payload->GetRowId());
+    if (NO_ROW != row)
+    {
+      wxGridCellAttrPtr attr_ptr = grid->GetOrCreateCellAttrPtr(row, ACTION_COLUMN);
+      if (attr_ptr.get() && attr_ptr->GetClientObject())
+      {
+        SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr_ptr->GetClientObject());
+        if (!sendbutton_clientdata->HasFailed())
+        {
+          sendbutton_clientdata->SetHasFailed(payload->HasFailed());
+          sendbutton_clientdata->SetProgress(payload->GetProgress());
+        }
+      }
+    }
 		delete payload;
 
 		grid->Refresh();
@@ -302,8 +322,8 @@ void PhotoMailerFrame::OnThumbnailEvent(wxThreadEvent& event)
 	ThumbnailEventPayload* payload = event.GetPayload<ThumbnailEventPayload*>();
 	if (payload)
 	{
-		int row = payload->GetRow();
-		if (0<=row && row<grid->GetNumberRows())
+		int row = GetRowWithId(payload->GetRowId());
+		if (NO_ROW != row)
 		{
 			wxGridCellAttr* thumbnail_attr = new wxGridCellAttr;
 			if (thumbnail_attr)
@@ -444,13 +464,14 @@ void PhotoMailerFrame::InitPhotoList()
 
 	wxGrid* grid = GetPhotosGrid();
 	int number_of_cols = grid->GetNumberCols();
-	if (5 >= number_of_cols)
+	if (COLUMN_COUNT >= number_of_cols)
 	{
     grid->HideRowLabels();
 		grid->DisableDragRowSize();
-		grid->AppendCols(5-number_of_cols);
+		grid->AppendCols(COLUMN_COUNT-number_of_cols);
 		grid->SetDefaultCellAlignment(wxALIGN_CENTRE, wxALIGN_CENTRE);
 		grid->SetDefaultCellOverflow(false);
+    grid->HideCol(ID_COLUMN);
 
 		wxGridCellAttr* photo_attr = new wxGridCellAttr;
 		photo_attr->SetReadOnly();
@@ -469,11 +490,13 @@ void PhotoMailerFrame::InitPhotoList()
 		action_attr->SetRenderer(sendbutton_renderer);
 
 		grid->SetDefaultRowSize(thumbnail_renderer->GetBestHeight());
+		grid->SetColLabelValue(ID_COLUMN, _("Id"));
+		grid->SetColAttr(ID_COLUMN, ro_attr);
 		grid->SetColLabelValue(THUMBNAIL_COLUMN, _("Thumbnail"));
 		grid->SetColAttr(THUMBNAIL_COLUMN, photo_attr);
 		grid->SetColSize(THUMBNAIL_COLUMN, thumbnail_renderer->GetBestWidth());
 		grid->SetColLabelValue(FILENAME_COLUMN, _("Filename"));
-		grid->SetColAttr(FILENAME_COLUMN, ro_attr);
+		ro_attr->IncRef(); grid->SetColAttr(FILENAME_COLUMN, ro_attr);
 		grid->SetColLabelValue(TIMESTAMP_COLUMN, _("Time"));
 		ro_attr->IncRef(); grid->SetColAttr(TIMESTAMP_COLUMN, ro_attr);
 		grid->SetColLabelValue(EMAIL_COLUMN, _("Email"));
@@ -529,14 +552,18 @@ bool PhotoMailerFrame::AddGridItem(const wxString& filename)
 
 		wxGrid* grid = GetPhotosGrid();
 
-    current_row = 0;
-    while (current_row < grid->GetNumberRows() && grid->GetCellValue(current_row, FILENAME_COLUMN).CmpNoCase(relative_filename) <= 0)
+    current_row = grid->GetNumberRows();
+    while (current_row>0 && grid->GetCellValue(current_row-1, FILENAME_COLUMN).CmpNoCase(relative_filename)>0)
     {
-      current_row++;
+      current_row--;
     }
 
     if (!grid->InsertRows(current_row))
       return false;
+
+    wxString id;
+    id << ++m_photolist_id;
+    grid->SetCellValue(current_row, ID_COLUMN, id);
 
 		grid->SetCellValue(current_row, FILENAME_COLUMN, relative_filename);
 		
@@ -555,7 +582,7 @@ bool PhotoMailerFrame::AddGridItem(const wxString& filename)
 		}
 	}
 
-	ThumbnailThread* thread = new ThumbnailThread(m_photolist_thread_semaphore, current_row, filename);
+	ThumbnailThread* thread = new ThumbnailThread(m_photolist_thread_semaphore, GetRowId(current_row), filename);
 	if (thread)
 	{
 		m_pending_thumbnail_count++;
@@ -565,61 +592,62 @@ bool PhotoMailerFrame::AddGridItem(const wxString& filename)
 	return true;
 }
 
-void PhotoMailerFrame::SelectPhoto(int row)
+void PhotoMailerFrame::SelectPhoto(const RowId& row_id)
 {
-	int grid_rows = -1;
 	{
 		wxMutexLocker lock(m_photolist_mutex);
 
 		wxGrid* grid = GetPhotosGrid();
-		grid_rows = grid->GetNumberRows();
-		if (0>row || row>=grid_rows)
+    int row = GetRowWithId(row_id);
+		if (NO_ROW == row)
 			return;
 
 		grid->SelectRow(row);
-		m_selected_row = row;
+		m_selected_row_id = row_id;
 		
 		wxMutexLocker photo_lock(m_selected_photo_mutex);
 		m_selected_photo_image.Destroy();
 		m_selected_photo_filename = wxEmptyString;
 	}
 
-	if (0<=m_selected_row && m_selected_row<grid_rows)
+	if (NO_ID != m_selected_row_id)
 	{
 		::wxGetApp().GetPreviewFrame()->ShowPhoto();
 	}
 }
 
-void PhotoMailerFrame::SendMail(int row)
+void PhotoMailerFrame::SendMail(const RowId& row_id)
 {
 	wxMutexLocker lock(m_photolist_mutex);
 
-	wxGrid* grid = GetPhotosGrid();
-	if (0>row || grid->GetNumberRows()<=row)
-		return;
+  wxGrid* grid = GetPhotosGrid();
+  int row = GetRowWithId(row_id);
+  if (NO_ROW == row)
+    return;
 
-	wxGridCellAttr* attr = grid->GetOrCreateCellAttr(row, ACTION_COLUMN);
-	SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr?attr->GetClientObject():nullptr);
-	if (!sendbutton_clientdata)
-		return;
+	wxGridCellAttrPtr attr_ptr = grid->GetOrCreateCellAttrPtr(row, ACTION_COLUMN);
+  if (attr_ptr.get() && attr_ptr->GetClientObject())
+  {
+    SendButtonClientData* sendbutton_clientdata = static_cast<SendButtonClientData*>(attr_ptr->GetClientObject());
 
-	wxString filename;
-	GetRowFilename(row, filename);
-	
-	MailThread* thread = new MailThread(row, GetSmtpServerCtrl()->GetValue(), GetSmtpPortCtrl()->GetValue(),
-		GetSmtpUsernameCtrl()->GetValue(), GetSmtpPasswordCtrl()->GetValue(),
-		GetSenderCtrl()->GetValue(), grid->GetCellValue(row, EMAIL_COLUMN),
-		GetSubjectCtrl()->GetValue(), filename);
+    wxString filename;
+    GetFilename(row_id, filename);
 
-	if (!thread)
-	{
-		sendbutton_clientdata->SetHasFailed(true);
-		return;
-	}
+    MailThread* thread = new MailThread(row_id, GetSmtpServerCtrl()->GetValue(), GetSmtpPortCtrl()->GetValue(),
+      GetSmtpUsernameCtrl()->GetValue(), GetSmtpPasswordCtrl()->GetValue(),
+      GetSenderCtrl()->GetValue(), grid->GetCellValue(row, EMAIL_COLUMN),
+      GetSubjectCtrl()->GetValue(), filename);
 
-	sendbutton_clientdata->SetHasFailed(false);
-	sendbutton_clientdata->SetProgress(0.0);
-	thread->Run();
+    if (!thread)
+    {
+      sendbutton_clientdata->SetHasFailed(true);
+      return;
+    }
+
+    sendbutton_clientdata->SetHasFailed(false);
+    sendbutton_clientdata->SetProgress(0.0);
+    thread->Run();
+  }
 }
 
 bool PhotoMailerFrame::LoadImage(const wxString& filename, wxImage& image, wxDateTime* timestamp)
@@ -710,7 +738,7 @@ bool PhotoMailerFrame::GetSelectedPhoto(wxImage& image, wxString& filename)
 		wxMutexLocker lock(m_photolist_mutex);
 
 		wxString absolute_filename;
-		if (!GetRowFilename(m_selected_row, absolute_filename) ||
+		if (!GetFilename(m_selected_row_id, absolute_filename) ||
 		    !GetRelativeFilename(absolute_filename, m_selected_photo_filename))
 		{
 			return false;
@@ -723,7 +751,7 @@ bool PhotoMailerFrame::GetSelectedPhoto(wxImage& image, wxString& filename)
 	return true;
 }
 
-bool PhotoMailerFrame::GetRowFilename(int row, wxString& filename)
+bool PhotoMailerFrame::GetFilename(const RowId& row_id, wxString& filename)
 {
 	wxMutexLocker lock(m_photolist_mutex);
 
@@ -731,7 +759,8 @@ bool PhotoMailerFrame::GetRowFilename(int row, wxString& filename)
 	if (!grid)
 		return false;
 
-	if (0>row || grid->GetNumberRows()<=row)
+  int row = GetRowWithId(row_id);
+	if (NO_ROW == row)
 		return false;
 
 	wxString cell_value = grid->GetCellValue(row, FILENAME_COLUMN);
@@ -741,6 +770,42 @@ bool PhotoMailerFrame::GetRowFilename(int row, wxString& filename)
 	wxFileName filename_filename(GetDirectoryPicker()->GetPath(), cell_value);
 	filename = filename_filename.GetFullPath();
 	return true;
+}
+
+int PhotoMailerFrame::GetRowWithId(const RowId& id)
+{
+  wxMutexLocker lock(m_photolist_mutex);
+
+  wxGrid* grid = GetPhotosGrid();
+  if (!grid || NO_ID==id)
+    return NO_ROW;
+
+  for (int row=0; row<grid->GetNumberRows(); row++)
+  {
+    if (GetRowId(row) == id)
+      return row;
+  }
+
+  return NO_ROW;
+}
+
+RowId PhotoMailerFrame::GetRowId(int row)
+{
+  wxMutexLocker lock(m_photolist_mutex);
+
+  wxGrid* grid = GetPhotosGrid();
+  if (!grid)
+    return NO_ID;
+
+  if (0>row || grid->GetNumberRows()<=row)
+    return NO_ID;
+
+  wxString cell_value = grid->GetCellValue(row, ID_COLUMN);
+  unsigned long tmp;
+	if (cell_value.IsEmpty() || !cell_value.ToULong(&tmp))
+		return NO_ID;
+
+  return tmp;
 }
 
 bool PhotoMailerFrame::StartFtpServer()

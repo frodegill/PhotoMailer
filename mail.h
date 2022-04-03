@@ -14,6 +14,8 @@
 #include "wx/grid.h"
 #include "wx/thread.h"
 
+#include "frame.h"
+
 
 namespace PhotoMailer
 {
@@ -22,7 +24,7 @@ class PhotoMailerFrame;
 class MailThread : public wxThread, public vmime::utility::progressListener
 {
 public:
-	MailThread(int row, const wxString& smtp_server, const wxString& smtp_port,
+	MailThread(const RowId& row_id, const wxString& smtp_server, const wxString& smtp_port,
 	           const wxString& smtp_username, const wxString& smtp_password,
 	           const wxString& from, const wxString& to,
 	           const wxString& subject, const wxString& filename);
@@ -41,7 +43,7 @@ private:
 	void GetSMTPUrl(std::string& url);
 
 private:
-	int m_row;
+	RowId m_row_id;
 	int m_has_failed;
 	wxString m_smtp_server;
 	wxString m_smtp_port;
@@ -58,15 +60,15 @@ private:
 class MailProgressEventPayload
 {
 public:
-	MailProgressEventPayload(int row, bool has_failed, double progress);
+	MailProgressEventPayload(const RowId& row_id, bool has_failed, double progress);
 	virtual ~MailProgressEventPayload() {}
 
-	int     GetRow() const {return m_row;}
+	RowId   GetRowId() const {return m_row_id;}
 	bool    HasFailed() const {return m_has_failed;}
 	double  GetProgress() const {return m_progress;}
 
 private:
-	int     m_row;
+	RowId   m_row_id;
 	bool    m_has_failed;
 	double  m_progress;
 };

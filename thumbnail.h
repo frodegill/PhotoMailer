@@ -16,6 +16,8 @@
 #include <wx/grid.h>
 #include <wx/image.h>
 
+#include "frame.h"
+
 
 #define THUMBNAIL_SIZE (64)
 
@@ -62,7 +64,7 @@ class PhotoMailerFrame;
 class ThumbnailThread : public wxThread
 {
 public:
-	ThumbnailThread(wxSemaphore* semaphore, int row, const wxString& filename);
+	ThumbnailThread(wxSemaphore* semaphore, const RowId& row_id, const wxString& filename);
 	virtual ~ThumbnailThread();
 
 public: //wxThread
@@ -74,21 +76,21 @@ private:
 	
 private:
 	wxSemaphore* m_semaphore;
-	int m_row;
+	RowId m_row_id;
 	wxString m_filename;
 };
 
 class ThumbnailEventPayload
 {
 public:
-	ThumbnailEventPayload(int row, const wxBitmap& bitmap, const wxDateTime& exif_timestamp);
+	ThumbnailEventPayload(const RowId& row_id, const wxBitmap& bitmap, const wxDateTime& exif_timestamp);
 
-	int GetRow() const {return m_row;}
+	RowId GetRowId() const {return m_row_id;}
 	const wxBitmap* GetBitmap() const {return &m_bitmap;}
 	wxDateTime GetTimestamp() const {return m_exif_timestamp;}
 
 private:
-	int m_row;
+	RowId m_row_id;
 	wxBitmap m_bitmap;
 	wxDateTime m_exif_timestamp;
 };

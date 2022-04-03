@@ -17,16 +17,23 @@
 #include "ftp/CFtpServer.h"
 
 
-#define THUMBNAIL_COLUMN (0)
-#define FILENAME_COLUMN  (1)
-#define TIMESTAMP_COLUMN (2)
-#define EMAIL_COLUMN     (3)
-#define ACTION_COLUMN    (4)
+#define ID_COLUMN        (0)
+#define THUMBNAIL_COLUMN (1)
+#define FILENAME_COLUMN  (2)
+#define TIMESTAMP_COLUMN (3)
+#define EMAIL_COLUMN     (4)
+#define ACTION_COLUMN    (5)
+#define COLUMN_COUNT     (ACTION_COLUMN+1)
 
 #define FTP_UPLOAD_EVENT    (wxID_HIGHEST-4)
 #define PREVIEW_EVENT       (wxID_HIGHEST-3)
 #define THUMBNAIL_EVENT     (wxID_HIGHEST-2)
 #define MAIL_PROGRESS_EVENT (wxID_HIGHEST-1)
+
+typedef unsigned long RowId;
+#define NO_ID (0L)
+
+#define NO_ROW (-1)
 
 
 void OnClientEventCallback(int event, CFtpServer::CClientEntry* client, void* arg);
@@ -72,8 +79,8 @@ private:
 	void RefreshPhotoList();
 	bool AddGridItem(const wxString& filename);
 
-	void SelectPhoto(int row);
-	void SendMail(int row);
+	void SelectPhoto(const RowId& row_id);
+	void SendMail(const RowId& row_id);
 
 public:
 	static bool LoadImage(const wxString& filename, wxImage& image, wxDateTime* timestamp = nullptr);
@@ -83,7 +90,9 @@ public:
 public:
 	wxSemaphore* GetPhotolistSemaphore() const {return m_photolist_thread_semaphore;}
 	bool GetSelectedPhoto(wxImage& image, wxString& filename);
-	bool GetRowFilename(int row, wxString& filename);
+	bool GetFilename(const RowId& row_id, wxString& filename);
+  int GetRowWithId(const RowId& id);
+  RowId GetRowId(int row);
 
 private:
 	bool StartFtpServer();
@@ -97,16 +106,17 @@ private:
 	bool m_is_shutting_down;
 
 	wxMutex m_photolist_mutex;
+  int m_photolist_id;
 	wxSemaphore* m_photolist_thread_semaphore;
 	int     m_pending_thumbnail_count;
 
-	int     m_selected_row;
+	RowId   m_selected_row_id;
 
 	wxMutex m_selected_photo_mutex;
 	wxImage m_selected_photo_image;
 	wxString m_selected_photo_filename;
 
-	int     m_pressed_send_button_row;
+	RowId    m_pressed_send_button_row_id;
 
 private:
 	DECLARE_EVENT_TABLE()

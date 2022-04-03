@@ -56,10 +56,10 @@ wxGridCellRenderer* ThumbnailRenderer::Clone() const
 
 
 
-ThumbnailThread::ThumbnailThread(wxSemaphore* semaphore, int row, const wxString& filename)
+ThumbnailThread::ThumbnailThread(wxSemaphore* semaphore, const RowId& row_id, const wxString& filename)
 : wxThread(),
   m_semaphore(semaphore),
-  m_row(row),
+  m_row_id(row_id),
   m_filename(filename)
 {
 	::wxGetApp().GetMainFrame()->RegisterThread(this);
@@ -95,7 +95,7 @@ wxThread::ExitCode ThumbnailThread::Entry()
 		return CleanupAndExit(-1);
 		
 	wxThreadEvent* threadEvent = new wxThreadEvent(wxEVT_THREAD, THUMBNAIL_EVENT);
-	ThumbnailEventPayload* payload = new ThumbnailEventPayload(m_row, bitmap, exif_timestamp);
+	ThumbnailEventPayload* payload = new ThumbnailEventPayload(m_row_id, bitmap, exif_timestamp);
 	threadEvent->SetPayload<ThumbnailEventPayload*>(payload);
 	::wxQueueEvent(event_handler, threadEvent);
 
@@ -135,8 +135,8 @@ bool ThumbnailThread::CreateThumbnailBitmap(const wxImage& image, wxBitmap& bitm
 }
 
 
-ThumbnailEventPayload::ThumbnailEventPayload(int row, const wxBitmap& bitmap, const wxDateTime& exif_timestamp)
-: m_row(row),
+ThumbnailEventPayload::ThumbnailEventPayload(const RowId& row_id, const wxBitmap& bitmap, const wxDateTime& exif_timestamp)
+: m_row_id(row_id),
   m_exif_timestamp(exif_timestamp)
 {
 	m_bitmap = bitmap.GetSubBitmap(wxRect(0, 0, bitmap.GetWidth(), bitmap.GetHeight()));

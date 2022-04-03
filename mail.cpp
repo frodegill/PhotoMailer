@@ -46,12 +46,12 @@ public:
 };
 #endif //ENABLE_TRACE
 
-MailThread::MailThread(int row, const wxString& smtp_server, const wxString& smtp_port,
+MailThread::MailThread(const RowId& row_id, const wxString& smtp_server, const wxString& smtp_port,
 	           const wxString& smtp_username, const wxString& smtp_password,
 	           const wxString& from, const wxString& to,
 	           const wxString& subject, const wxString& filename)
 : wxThread(),
-  m_row(row),
+  m_row_id(row_id),
   m_has_failed(false),
   m_smtp_server(smtp_server),
   m_smtp_port(smtp_port),
@@ -152,7 +152,7 @@ wxThread::ExitCode MailThread::Entry()
 
 	//Send completed progress
 	wxThreadEvent* threadEvent = new wxThreadEvent(wxEVT_THREAD, MAIL_PROGRESS_EVENT);
-	MailProgressEventPayload* payload = new MailProgressEventPayload(m_row, m_has_failed, 100.0);
+	MailProgressEventPayload* payload = new MailProgressEventPayload(m_row_id, m_has_failed, 100.0);
 	threadEvent->SetPayload<MailProgressEventPayload*>(payload);
 	::wxQueueEvent(::wxGetApp().GetMainFrame(), threadEvent);
 
@@ -168,7 +168,7 @@ void MailThread::progress(const size_t current, const size_t currentTotal)
 	if (0 != currentTotal)
 	{
 		wxThreadEvent* threadEvent = new wxThreadEvent(wxEVT_THREAD, MAIL_PROGRESS_EVENT);
-		MailProgressEventPayload* payload = new MailProgressEventPayload(m_row, m_has_failed,
+		MailProgressEventPayload* payload = new MailProgressEventPayload(m_row_id, m_has_failed,
 																																		 static_cast<double>(current)/static_cast<double>(currentTotal));
 		threadEvent->SetPayload<MailProgressEventPayload*>(payload);
 		::wxQueueEvent(::wxGetApp().GetMainFrame(), threadEvent);
@@ -197,8 +197,8 @@ void MailThread::GetSMTPUrl(std::string& url)
 
 
 
-MailProgressEventPayload::MailProgressEventPayload(int row, bool has_failed, double progress)
-: m_row(row),
+MailProgressEventPayload::MailProgressEventPayload(const RowId& row_id, bool has_failed, double progress)
+: m_row_id(row_id),
   m_has_failed(has_failed),
   m_progress(progress)
 {
