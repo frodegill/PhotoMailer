@@ -682,7 +682,7 @@ CFtpServer::CUserEntry *CFtpServer::SearchUserFromLogin( const char *pszLogin )
 		CFtpServer::CUserEntry *pSearchUser = NULL;
 		pSearchUser = pFirstUser;
 		while( pSearchUser ) {
-			if( pSearchUser->szLogin && !strcmp( pszLogin, pSearchUser->szLogin ) ) {
+			if( !strcmp( pszLogin, pSearchUser->szLogin ) ) {
 				break;
 			}
 			pSearchUser = pSearchUser->pNextUser;
@@ -1414,7 +1414,7 @@ bool CFtpServer::CClientEntry::CheckPrivileges( unsigned char ucPriv ) const
 		} else if( nCmd == CMD_RNTO ) {
 
 			if( pszCmdArg ) {
-				if( pClient->szRenameFromPath ) {
+				if( *pClient->szRenameFromPath ) {
 					pszPath = pClient->BuildPath( pszCmdArg );
 					if( pszPath && rename( pClient->szRenameFromPath, pszPath ) == 0 ) {
 						pClient->SendReply( "250 Rename successful." );
@@ -1530,7 +1530,7 @@ void CFtpServer::CClientEntry::LogOut()
 	}
 	bIsLogged = false;
 	strcpy( szWorkingDir, "/" );
-	if( szRenameFromPath )
+	if( *szRenameFromPath )
 		*szRenameFromPath = 0x0;
 }
 
@@ -2375,7 +2375,7 @@ int CFtpServer::CClientEntry::GetFileListLine( char* psLine, unsigned short mode
 
 	struct tm *t = gmtime( (time_t *) &mtime ); // UTC Time
 	if( time(NULL) - mtime > 180 * 24 * 60 * 60 ) {
-		sprintf( szYearOrHour, "%5d", t->tm_year + 1900 );
+		sprintf( szYearOrHour, "%5d", (t->tm_year + 1900)%10000 );
 	} else
 		sprintf( szYearOrHour, "%02d:%02d", t->tm_hour, t->tm_min );
 
